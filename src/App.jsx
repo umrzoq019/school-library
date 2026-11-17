@@ -146,7 +146,7 @@ function HomePage({ books }) {
 
 function CatalogPage({ books }) {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All books");
+  const [category, setCategory] = useState(() => new URLSearchParams(window.location.search).get("category") || "All books");
   const [availability, setAvailability] = useState("all");
   const filteredBooks = useMemo(() => books.filter((book) => {
     const haystack = [book.title, book.author, book.category, book.description].join(" ").toLowerCase();
@@ -221,7 +221,10 @@ function AuthPage({ mode, session }) {
     if (isRegister) {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: name.trim(), class_name: className.trim() } },
+        options: {
+          data: { full_name: name.trim(), class_name: className.trim() },
+          emailRedirectTo: window.location.origin + "/account",
+        },
       });
       if (signUpError) setError(signUpError.message);
       else if (data.session) navigate("/account");
@@ -436,7 +439,7 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [profileLoading, setProfileLoading] = useState(false);
-  const [books, setBooks] = useState(DEMO_BOOKS);
+  const [books, setBooks] = useState(supabase ? [] : DEMO_BOOKS);
   useEffect(() => {
     if (!supabase) { setAuthLoading(false); return; }
     supabase.auth.getSession().then(({ data, error }) => { if (!error) setSession(data.session); setAuthLoading(false); });
@@ -455,7 +458,7 @@ function App() {
     let active = true;
     if (!supabase) return;
     supabase.from("books").select("*").eq("is_published", true).order("created_at", { ascending: false })
-      .then(({ data, error }) => { if (active && !error && data?.length) setBooks(data); });
+      .then(({ data, error }) => { if (active && !error) setBooks(data || []); });
     return () => { active = false; };
   }, []);
   const signOut = async () => { if (supabase) await supabase.auth.signOut(); };

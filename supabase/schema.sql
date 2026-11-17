@@ -43,6 +43,7 @@ create table if not exists public.loan_requests (
 create index if not exists books_published_idx on public.books (is_published, created_at desc);
 create index if not exists loan_requests_student_idx on public.loan_requests (student_id, created_at desc);
 create index if not exists loan_requests_status_idx on public.loan_requests (status, created_at desc);
+create index if not exists loan_requests_book_id_idx on public.loan_requests (book_id);
 create unique index if not exists loan_one_active_request_per_student_book
   on public.loan_requests (student_id, book_id)
   where status in ('pending', 'approved');
@@ -118,7 +119,8 @@ grant update (status) on public.loan_requests to authenticated;
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
-as $$
+set search_path = ''
+as $
 begin
   new.updated_at = now();
   return new;

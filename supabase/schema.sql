@@ -63,7 +63,7 @@ as $$
 $$;
 
 revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to authenticated;
+grant execute on function public.is_admin() to anon, authenticated;
 
 -- Public sign-up always creates a student. The browser never chooses the role.
 create or replace function public.handle_new_user()
@@ -99,6 +99,14 @@ drop trigger if exists protect_profile_role on public.profiles;
 drop function if exists public.prevent_profile_role_change();
 revoke update on public.profiles from authenticated;
 grant update (full_name, class_name) on public.profiles to authenticated;
+
+-- Explicit API grants; row-level security below still governs which rows
+-- each role can access or change.
+grant usage on schema public to anon, authenticated;
+grant select on public.profiles to authenticated;
+grant select on public.books to anon, authenticated;
+grant insert, update, delete on public.books to authenticated;
+grant select, insert, update on public.loan_requests to authenticated;
 
 create or replace function public.touch_updated_at()
 returns trigger

@@ -134,6 +134,7 @@ for each row execute procedure public.touch_updated_at();
 drop trigger if exists loan_requests_touch_updated_at on public.loan_requests;
 create trigger loan_requests_touch_updated_at before update on public.loan_requests
 for each row execute procedure public.touch_updated_at();
+revoke all on function public.touch_updated_at() from public, anon, authenticated;
 
 -- Keep available-copy counts in sync with approved/returned loans.
 create or replace function public.sync_loan_book_copies()

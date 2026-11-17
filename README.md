@@ -34,6 +34,23 @@ where id = (select id from auth.users where email = 'staff@example.edu');
 
 The admin sidebar and admin routes are only rendered for profiles whose database role is `admin`. Supabase RLS policies enforce the same authorization on the data layer.
 
-## Deployment
+## Deploy (Netlify Free)
 
-Deploy as a Vite static site. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the hosting provider's environment variables, and configure the Supabase Auth site URL and redirect URLs for the deployed domain.
+The repository includes `netlify.toml` and a single-page-app redirect for React Router.
+
+1. Sign in to [Netlify](https://app.netlify.com/) and choose **Add new site → Import an existing project**.
+2. Connect GitHub and select `umrzoq019/school-library`.
+3. Netlify reads the build settings from `netlify.toml` (`npm run build`, publish `dist`). Deploy the `main` branch.
+4. In **Site configuration → Environment variables**, add:
+   - `VITE_SUPABASE_URL` = `https://ugiotwjaehdmoddkqixp.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = the project's publishable key from Supabase **Settings → API Keys**.
+5. Trigger a new deploy so the Vite build receives those variables.
+6. In Supabase **Authentication → URL Configuration**, set **Site URL** to your Netlify site URL and add `https://YOUR-SITE.netlify.app/**` and `https://YOUR-SITE.netlify.app/account` to the allowed redirect URLs.
+
+The Netlify Free plan is $0/month with a 300-credit monthly limit; sites pause when the limit is reached. See [Netlify pricing](https://www.netlify.com/pricing/).
+
+## Database migrations
+
+- `supabase/migrations/` contains the applied migration history for the project.
+- `supabase/schema.sql` is the full current schema reference.
+- The Supabase project has the database objects installed already; do not rerun the initial migration against a populated database.

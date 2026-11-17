@@ -58,13 +58,13 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $is_admin$
   select (select auth.uid()) is not null
     and exists (
       select 1 from public.profiles
       where id = (select auth.uid()) and role = 'admin'
     );
-$;
+$is_admin$;
 
 revoke all on function private.is_admin() from public, anon;
 grant execute on function private.is_admin() to authenticated;

@@ -47,30 +47,34 @@ create unique index if not exists loan_one_active_request_per_student_book
   on public.loan_requests (student_id, book_id)
   where status in ('pending', 'approved');
 
--- This function is used by RLS policies. SECURITY DEFINER avoids recursive
--- profile policies when checking a staff member's role.
-create or replace function public.is_admin()
+-- Authorization helper lives outside the exposed public API schema.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_admin()
 returns boolean
 language sql
 stable
 security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = (select auth.uid()) and role = 'admin'
-  );
-$$;
+set search_path = ''
+as $
+  select (select auth.uid()) is not null
+    and exists (
+      select 1 from public.profiles
+      where id = (select auth.uid()) and role = 'admin'
+    );
+$;
 
-revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to anon, authenticated;
+revoke all on function private.is_admin() from public, anon;
+grant execute on function private.is_admin() to authenticated;
 
 -- Public sign-up always creates a student. The browser never chooses the role.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.profiles (id, full_name, class_name, email, role)
@@ -92,12 +96,13 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 -- Students can update only non-privileged profile fields through the API.
 -- Role changes are reserved for trusted staff using the Supabase SQL Editor.
 drop trigger if exists protect_profile_role on public.profiles;
 drop function if exists public.prevent_profile_role_change();
-revoke update on public.profiles from authenticated;
+revoke update on public.profiles from public, anon, authenticated;
 grant update (full_name, class_name) on public.profiles to authenticated;
 
 -- Explicit API grants; row-level security below still governs which rows
@@ -106,7 +111,9 @@ grant usage on schema public to anon, authenticated;
 grant select on public.profiles to authenticated;
 grant select on public.books to anon, authenticated;
 grant insert, update, delete on public.books to authenticated;
-grant select, insert, update on public.loan_requests to authenticated;
+grant select, insert on public.loan_requests to authenticated;
+revoke update on public.loan_requests from public, anon, authenticated;
+grant update (status) on public.loan_requests to authenticated;
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -131,7 +138,7 @@ create or replace function public.sync_loan_book_copies()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if old.status is distinct from new.status then
@@ -156,6 +163,7 @@ drop trigger if exists loan_status_updates_book_copies on public.loan_requests;
 create trigger loan_status_updates_book_copies
   after update of status on public.loan_requests
   for each row execute procedure public.sync_loan_book_copies();
+revoke all on function public.sync_loan_book_copies() from public, anon, authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.books enable row level security;
@@ -164,39 +172,45 @@ alter table public.loan_requests enable row level security;
 drop policy if exists "Students and admins can read profiles" on public.profiles;
 create policy "Students and admins can read profiles"
   on public.profiles for select to authenticated
-  using (id = (select auth.uid()) or (select public.is_admin()));
+  using (id = (select auth.uid()) or (select private.is_admin()));
 
 drop policy if exists "Students can update their own profile" on public.profiles;
 create policy "Students can update their own profile"
   on public.profiles for update to authenticated
-  using (id = (select auth.uid()) or (select public.is_admin()))
-  with check (id = (select auth.uid()) or (select public.is_admin()));
+  using (id = (select auth.uid()) or (select private.is_admin()))
+  with check (id = (select auth.uid()) or (select private.is_admin()));
 
 drop policy if exists "Published books are visible to everyone" on public.books;
-create policy "Published books are visible to everyone"
-  on public.books for select to anon, authenticated
-  using (is_published = true or (select public.is_admin()));
+drop policy if exists "Published books are visible to anon" on public.books;
+drop policy if exists "Published books and admin book records are visible to authenticated" on public.books;
+create policy "Published books are visible to anon"
+  on public.books for select to anon
+  using (is_published = true);
+
+create policy "Published books and admin book records are visible to authenticated"
+  on public.books for select to authenticated
+  using (is_published = true or (select private.is_admin()));
 
 drop policy if exists "Admins can insert books" on public.books;
 create policy "Admins can insert books"
   on public.books for insert to authenticated
-  with check ((select public.is_admin()));
+  with check ((select private.is_admin()));
 
 drop policy if exists "Admins can update books" on public.books;
 create policy "Admins can update books"
   on public.books for update to authenticated
-  using ((select public.is_admin()))
-  with check ((select public.is_admin()));
+  using ((select private.is_admin()))
+  with check ((select private.is_admin()));
 
 drop policy if exists "Admins can delete books" on public.books;
 create policy "Admins can delete books"
   on public.books for delete to authenticated
-  using ((select public.is_admin()));
+  using ((select private.is_admin()));
 
 drop policy if exists "Students can read their requests and admins can read all" on public.loan_requests;
 create policy "Students can read their requests and admins can read all"
   on public.loan_requests for select to authenticated
-  using (student_id = (select auth.uid()) or (select public.is_admin()));
+  using (student_id = (select auth.uid()) or (select private.is_admin()));
 
 drop policy if exists "Students can request available books" on public.loan_requests;
 create policy "Students can request available books"
@@ -215,8 +229,8 @@ create policy "Students can request available books"
 drop policy if exists "Admins can update loan requests" on public.loan_requests;
 create policy "Admins can update loan requests"
   on public.loan_requests for update to authenticated
-  using ((select public.is_admin()))
-  with check ((select public.is_admin()));
+  using ((select private.is_admin()))
+  with check ((select private.is_admin()));
 
 -- Optional initial data is intentionally left out. The app includes a preview
 -- catalog, and real books can be entered from the admin workspace.

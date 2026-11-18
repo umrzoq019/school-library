@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GulPS Library</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0}</style>
+</head>
+<body>
+<style>
+/* Layout: sticky top bar, cover-grid catalog with filter row, side drawer for a book, tabbed admin tables. Blue accent is for actions only; green/red/amber are stock status. */
+:root{--bg:#f2f3f5;--surface:#fff;--surface2:#e9ebef;--line:#dcdfe5;--fg:#16181d;--mute:#626977;--accent:#3b5bdb;--accent-fg:#fff;--ok:#1f7a4d;--okbg:#dff3e8;--bad:#b3261e;--badbg:#fbe3e1;--warn:#946200;--warnbg:#fbefcf;--shadow:0 8px 24px rgba(20,24,40,.12);
+--display:"Space Grotesk",system-ui,sans-serif;--body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121419;--surface:#1a1d24;--surface2:#232731;--line:#2b303b;--fg:#e7e9ee;--mute:#9097a5;--accent:#7f98ff;--accent-fg:#0f1220;--ok:#5fcf97;--okbg:#17382a;--bad:#ff8a80;--badbg:#3d1f1d;--warn:#f0c35c;--warnbg:#3a2f13;--shadow:0 8px 24px rgba(0,0,0,.45);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121419;--surface:#1a1d24;--surface2:#232731;--line:#2b303b;--fg:#e7e9ee;--mute:#9097a5;--accent:#7f98ff;--accent-fg:#0f1220;--ok:#5fcf97;--okbg:#17382a;--bad:#ff8a80;--badbg:#3d1f1d;--warn:#f0c35c;--warnbg:#3a2f13;--shadow:0 8px 24px rgba(0,0,0,.45);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));padding:0 max(16px,env(safe-area-inset-left,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:20px;height:56px}
+.logo{font:700 19px var(--display);letter-spacing:-.02em;text-decoration:none;color:var(--fg);display:flex;align-items:center;gap:8px}
+.logo i{width:22px;height:22px;border-radius:5px;background:var(--accent);display:inline-block;position:relative}
+.logo i::after{content:"";position:absolute;left:7px;top:4px;width:3px;height:14px;background:var(--accent-fg);box-shadow:5px 2px 0 var(--accent-fg)}
+nav{display:flex;gap:2px;margin-left:auto}
+nav a{padding:7px 12px;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500}
+nav a:hover{color:var(--fg);background:var(--surface2)}
+nav a[aria-current="page"]{color:var(--fg);background:var(--surface2)}
+main{padding-block:24px 64px;min-height:70vh}
+.head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.head h1{font-size:28px}
+.sub{color:var(--mute);margin:4px 0 0}
+.search{position:relative;flex:1 1 260px;max-width:420px}
+.search input{width:100%;height:42px;padding:0 14px 0 38px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.search svg{position:absolute;left:12px;top:12px;width:18px;height:18px;color:var(--mute)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 13px;color:var(--mute);font-weight:500;transition:.15s}
+.chip:hover{color:var(--fg);border-color:var(--mute)}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.spacer{flex:1}
+select,.field input,.field select,.field textarea{height:38px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:22px 16px}
+.card{all:unset;display:block;cursor:pointer;min-width:0}
+.card:focus-visible .cover{outline:2px solid var(--accent);outline-offset:3px}
+.cover{position:relative;aspect-ratio:2/3;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:14px 12px 12px 18px;color:#fff;transition:transform .18s,box-shadow .18s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.cover::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:rgba(0,0,0,.22)}
+.card:hover .cover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.cover b{font:700 clamp(14px,1.5vw,17px)/1.15 var(--display);overflow-wrap:anywhere;text-wrap:balance}
+.cover small{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.06em}
+.cover.big{width:170px;flex:none}
+.cover.big b{font-size:20px}
+.badge{position:absolute;right:8px;top:8px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--okbg);color:var(--ok)}
+.badge.no{background:var(--badbg);color:var(--bad)}
+.ct{margin-top:9px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ca{color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stock{font-size:12px;margin-top:2px;color:var(--ok);font-weight:500}
+.stock.no{color:var(--bad)}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--mute)}
+.empty h3{color:var(--fg);margin-bottom:6px}
+.btn{height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:500;transition:.15s}
+.btn:hover{border-color:var(--mute)}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{height:30px;padding:0 11px;font-size:13px}
+.btn.dng{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface2);color:var(--mute)}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.warn{background:var(--warnbg);color:var(--warn)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.pad{padding:20px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
+.tabs button{all:unset;cursor:pointer;padding:10px 14px;color:var(--mute);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:600;padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface2)}
+td.r,th.r{text-align:right;white-space:nowrap}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-variant-numeric:tabular-nums}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ov{position:fixed;inset:0;z-index:20;background:rgba(10,12,18,.55);display:flex;justify-content:flex-end;animation:fade .15s}
+.ov.mid{justify-content:center;align-items:center;padding:16px}
+.sheet{background:var(--surface);width:min(460px,100%);height:100%;overflow:auto;padding:24px;box-shadow:var(--shadow);animation:slide .2s;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.mid .sheet{height:auto;max-height:100%;border-radius:14px;animation:fade .15s}
+@keyframes fade{from{opacity:0}}@keyframes slide{from{transform:translateX(30px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.x{float:right;all:unset;cursor:pointer;color:var(--mute);font-size:22px;line-height:1;padding:4px}
+.field{display:grid;gap:5px;margin-bottom:14px}
+.field label{font-weight:500;font-size:13px}
+.field textarea{height:90px;padding:8px 10px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail{display:flex;gap:18px;margin:18px 0}
+.detail h2{font-size:22px;line-height:1.2}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;color:var(--mute);margin-top:12px}
+.kv b{color:var(--fg);font-weight:500}
+.id{display:inline-block;white-space:nowrap;font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.08em;padding:3px 9px;border-radius:6px;background:var(--surface2)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;max-width:90vw}
+.note{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.sum{display:flex;flex-wrap:wrap;gap:6px 22px;color:var(--mute);margin-bottom:16px}.sum b{color:var(--fg)}
+.me{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:22px}
+.me h1{font-size:30px}
+.signin{max-width:420px;margin:40px auto;text-align:center}
+.signin form{display:flex;gap:8px;margin-top:18px}.signin input{flex:1;height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 12px;text-transform:uppercase;letter-spacing:.08em;min-width:0}
+@media (max-width:560px){.bar{gap:6px}.logo span{display:none}.two{grid-template-columns:1fr}.detail{flex-direction:column}.grid{grid-template-columns:repeat(2,1fr)}nav a{padding:7px 9px}}
+</style>
+<style>
+.bar nav{margin-left:0}a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--fg)}a.btn.pri{color:var(--accent-fg)}.seg.lg{margin:0;flex:none}.seg.lg button{padding:4px 10px;font-size:12px;font-weight:600}.eyebrow{font:600 12px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px}
+.hs{flex:1;max-width:300px}.hs input{width:100%;height:36px;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:0 14px}
+.ava{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:600;text-decoration:none;flex:none}
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center;padding:28px 0 8px}
+.hero h1{font-size:clamp(34px,5vw,54px);line-height:1.02}
+.hero p{color:var(--mute);font-size:16px;max-width:46ch;margin:14px 0 22px}
+.search.big{max-width:480px}.search.big input{height:50px;font-size:16px;border-radius:12px;padding-left:42px}.search.big svg{top:16px;left:14px}
+.shelf{position:relative;height:290px}
+.shelf .cover{position:absolute;width:150px;aspect-ratio:2/3;box-shadow:var(--shadow)}
+.shelf .cover:nth-child(1){left:4%;top:44px;transform:rotate(-7deg)}.shelf .cover:nth-child(2){left:31%;top:0;transform:rotate(2deg);z-index:1}.shelf .cover:nth-child(3){left:58%;top:50px;transform:rotate(8deg)}
+.sec{margin-top:36px}.sech{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}.sech h2{font-size:20px}
+.rail{display:grid;grid-auto-flow:column;grid-auto-columns:148px;gap:16px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x proximity}.rail .card{scroll-snap-align:start}
+.genres{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.gt{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600;transition:.15s}.gt:hover{border-color:var(--accent);transform:translateY(-2px)}.gt:focus-visible{outline:2px solid var(--accent)}.gt span{color:var(--mute);font-weight:500}
+.cat{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:start}
+.filt{position:sticky;top:76px;display:grid;gap:4px}
+.filt h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}.filt h4:first-child{margin-top:0}
+.filt button{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;color:var(--mute)}.filt button:hover{background:var(--surface2);color:var(--fg)}.filt button[aria-pressed="true"]{background:var(--surface2);color:var(--fg);font-weight:600}.filt button:focus-visible{outline:2px solid var(--accent)}
+.filt select{width:100%}
+.bk{display:grid;grid-template-columns:240px 1fr;gap:32px;margin-top:12px}.bk .cover{width:240px;aspect-ratio:2/3}.bk h1{font-size:34px;line-height:1.1}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}.dots i{width:14px;height:20px;border-radius:3px;border:2px solid var(--bad)}.dots i.f{border-color:var(--ok);background:var(--ok)}
+.avl{padding:16px 18px;margin:18px 0}.avl b{font:700 24px var(--display)}
+.crumb{color:var(--mute);text-decoration:none}.crumb:hover{color:var(--fg)}
+.adm{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:start}
+.side{position:sticky;top:76px;display:grid;gap:2px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.side h4{margin:6px 8px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.side a{padding:8px 10px;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500;display:flex;justify-content:space-between;gap:8px;white-space:nowrap}.side a:hover{background:var(--surface2);color:var(--fg)}.side a[aria-current="page"]{background:var(--accent);color:var(--accent-fg)}
+.auth{display:grid;grid-template-columns:1fr 1fr;max-width:880px;margin:24px auto;overflow:hidden}
+.auth .aside{background:var(--surface2);padding:32px;display:flex;flex-direction:column;justify-content:space-between;gap:20px}
+.auth .aside h2{font-size:26px;line-height:1.15}
+.auth .form{padding:32px;min-width:0}
+.seg{display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:9px;margin-bottom:20px}.seg button{all:unset;cursor:pointer;flex:1;text-align:center;padding:7px;border-radius:7px;font-weight:500;color:var(--mute)}.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}.seg button:focus-visible{outline:2px solid var(--accent)}
+.due{font-size:12px;font-weight:600}.due.bad{color:var(--bad)}.due.ok{color:var(--mute)}
+.foot{border-top:1px solid var(--line);margin-top:56px;padding:22px 0;color:var(--mute);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+.loan{display:flex;gap:14px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}.loan:last-child{border:0}.loan:hover{background:var(--surface2)}.loan .mini{width:34px;height:50px;border-radius:3px;flex:none}.loan>div{min-width:0;flex:1}.loan .mini{padding:0;width:34px;height:50px;aspect-ratio:auto}.loan .mini::before{width:4px}
+@media (max-width:860px){.cat{grid-template-columns:1fr}.filt{position:static;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.filt h4{display:none}.filt button{border:1px solid var(--line);border-radius:999px;padding:5px 12px}.filt select{width:auto}.hero{grid-template-columns:1fr}.shelf{display:none}.adm{grid-template-columns:1fr}.side{position:static;display:flex;overflow-x:auto}.side h4{display:none}}
+@media (max-width:700px){.bk{grid-template-columns:1fr}.bk .cover{width:170px}.auth{grid-template-columns:1fr}.auth .aside{display:none}.hs{display:none}}
+</style>
+<div class="top"><div class="wrap bar" id="bar"></div></div>
+<main class="wrap" id="main"></main>
+<div id="layer"></div>
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const S={books:[],students:[],loans:[],admins:[],bans:{},saved:[],loaded:{},uid:null,me:null,canEdit:false,q:"",genre:"All",blang:"all",only:false,sort:"title",tab:"overview",sq:"",ltab:"saved",atab:"login",bid:"",lang:"en"};
+try{const l=localStorage.getItem("gul.lang");S.lang=l||((navigator.language||"").toLowerCase().startsWith("uz")?"uz":"en")}catch(_){}
+let DB=null,route="home",hdrKey="";
+/* ---------- language ---------- */
+const SCH={en:{short:"GulPS",full:"Presidential School in Gulistan"},uz:{short:"GulPM",full:"Guliston shahridagi Prezident maktabi"}};
+const sch=()=>SCH[S.lang];
+const UZ={};
+const t=(k,v)=>{const s=(S.lang==="uz"&&UZ[k])||k;return v?s.replace(/\{(\w+)\}/g,(_,n)=>v[n]):s};
+const LANGS=["uz","en","ru"],lname=l=>t({uz:"Uzbek",en:"English",ru:"Russian"}[l]||"English");
+const blang=b=>b.lang||"en";
+const UM=["yan","fev","mar","apr","may","iyun","iyul","avg","sen","okt","noy","dek"];
+const fmt=d=>{if(!d)return "";const x=new Date(d);return S.lang==="uz"?`${x.getDate()}-${UM[x.getMonth()]}, ${x.getFullYear()}`:x.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})};
+const hue=x=>{let h=0;for(const c of x)h=(h*31+c.charCodeAt(0))%360;return h};
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const toast=m=>{const e=document.createElement("div");e.className="toast";e.textContent=m;document.body.append(e);setTimeout(()=>e.remove(),2800)};
+const out=id=>S.loans.filter(l=>l.bookId===id&&!l.returnedAt);
+const avail=b=>Math.max(0,b.total-out(b.id).length);
+const pop=b=>S.loans.filter(l=>l.bookId===b.id).length;
+const bookOf=id=>S.books.find(b=>b.id===id);
+const stuOf=id=>S.students.find(s=>s.id===id);
+const code=s=>s.code||s.id;
+const banned=s=>!!S.bans[s.id];
+const sname=s=>s?s.first+" "+s.last:t("Removed student");
+const isLate=l=>!l.returnedAt&&new Date(l.due)<new Date();
+const save=async f=>{try{await f();return true}catch(e){toast(t("Could not save. Check your connection or your access."));return false}};
+const cover=(b,big)=>`<div class="cover${big?" big":""}" style="background:hsl(${hue(b.title)} 32% 30%)"><small>${esc(t(b.genre||""))} · ${blang(b).toUpperCase()}</small><b>${esc(b.title)}</b><small>${esc(b.author)}</small></div>`;
+const dueInfo=l=>{const d=Math.ceil((new Date(l.due)-Date.now())/864e5);return d<0?`<span class="due bad">${t(d===-1?"Overdue by {n} day":"Overdue by {n} days",{n:-d})}</span>`:d===0?`<span class="due bad">${t("Due today")}</span>`:`<span class="due ok">${t(d===1?"Due in {n} day":"Due in {n} days",{n:d})}</span>`};
+function stockLine(b){const a=avail(b);if(a>0)return `<div class="stock">${t("{n} of {total} available",{n:a,total:b.total})}</div>`;
+ const d=out(b.id).map(l=>l.due).sort()[0];return `<div class="stock no">${t("Not available · 0 of {total}",{total:b.total})}${d?` · ${t("back ~{d}",{d:fmt(d)})}`:""}</div>`}
+const card=(b,extra="")=>`<button class="card" data-book="${b.id}">${cover(b).replace('</div>',`<span class="badge${avail(b)?"":" no"}">${avail(b)}/${b.total}</span></div>`)}<div class="ct">${esc(b.title)}</div><div class="ca">${esc(b.author)}</div>${extra||stockLine(b)}</button>`;
+const searchBox=(id,v="",big)=>`<form class="search${big?" big":""}" data-search><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="${id}" type="search" placeholder="${t("Search by title or author")}" aria-label="${t("Search books")}" value="${esc(v)}"></form>`;
+const empty=(a,b)=>`<div class="empty" style="border:0"><h3>${t(a)}</h3>${t(b)}</div>`;
+const needLogin=()=>`<div class="empty"><h3>${t("Log in to see this page")}</h3>${t("Create a library account or log in first.")}<div style="margin-top:14px"><a class="btn pri" href="#login">${t("Log in or register")}</a></div></div>`;
+function setLang(l){S.lang=l;try{localStorage.setItem("gul.lang",l)}catch(_){}document.documentElement.lang=l;document.title=sch().short+" "+t("Library");hdrKey="";go()}
+
+/* ---------- header ---------- */
+function header(){
+ const key=[route,S.uid,S.me&&S.me.id,S.canEdit,S.lang].join("|");if(key===hdrKey)return;hdrKey=key;
+ const nav=[["home","Home"],["catalog","Catalog"],...(S.uid?[["list","My list"]]:[])];
+ $("#bar").innerHTML=`<a class="logo" href="#home" title="${esc(sch().full)}"><i></i><span>${sch().short}</span></a>
+ <nav>${nav.map(([r,n])=>`<a href="#${r}" ${route===r?'aria-current="page"':""}>${t(n)}</a>`).join("")}</nav>
+ <form class="hs" data-search><input id="hq" type="search" placeholder="${t("Search books")}" aria-label="${t("Search books")}"></form><span style="flex:1"></span>
+ <div class="seg lg" role="group" aria-label="${t("Language")}">${["uz","en"].map(l=>`<button data-lang="${l}" aria-pressed="${S.lang===l}">${l.toUpperCase()}</button>`).join("")}</div>
+ ${S.canEdit?`<a class="btn sm" href="#admin">${t("Admin")}</a>`:""}
+ ${S.me?`<a class="ava" href="#profile" title="${esc(sname(S.me))}">${esc((S.me.first||"?")[0].toUpperCase())}</a>`:`<a class="btn pri sm" href="#login">${t("Log in")}</a>`}`;
+}
+document.addEventListener("submit",e=>{const f=e.target.closest("[data-search]");if(!f)return;e.preventDefault();S.q=f.querySelector("input").value;S.genre="All";if(route==="catalog")viewCatalog();else location.hash="catalog"});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-lang]");if(b)setLang(b.dataset.lang)});
+
+/* ---------- home ---------- */
+function paintHome(){
+ if(document.activeElement&&document.activeElement.id==="hq2")return;
+ const top=[...S.books].sort((a,b)=>pop(b)-pop(a)||a.title.localeCompare(b.title)),fresh=[...S.books].sort((a,b)=>(b.added||0)-(a.added||0)).slice(0,12),free=S.books.filter(b=>avail(b)>0);
+ const gc={};S.books.forEach(b=>{if(b.genre)gc[b.genre]=(gc[b.genre]||0)+1});
+ const mine=S.me?S.loans.filter(l=>l.studentId===S.me.id&&!l.returnedAt):[];
+ const rail=(n,L,link="")=>L.length?`<section class="sec"><div class="sech"><h2>${t(n)}</h2>${link}</div><div class="rail">${L.map(b=>card(b)).join("")}</div></section>`:"";
+ $("#main").innerHTML=`<section class="hero"><div><div class="eyebrow">${sch().full}</div><h1>${t("Find your next read")}</h1><p>${S.loaded.books?t("{n} titles on our shelves, {free} ready to borrow today.",{n:S.books.length,free:free.length}):t("Opening the shelves…")}</p>${searchBox("hq2","",true)}</div>
+ <div class="shelf" aria-hidden="true">${top.slice(0,3).map(b=>cover(b)).join("")}</div></section>
+ ${mine.length?`<section class="sec"><div class="sech"><h2>${t("Your books")}</h2><a href="#list">${t("See all")}</a></div><div class="panel">${mine.map(l=>{const b=bookOf(l.bookId);return b?`<div class="loan" data-book="${b.id}"><div class="cover mini" style="background:hsl(${hue(b.title)} 32% 30%)"></div><div><b>${esc(b.title)}</b><div class="ca">${esc(b.author)}</div></div>${dueInfo(l)}</div>`:""}).join("")}</div></section>`:""}
+ ${rail("Popular right now",top.filter(b=>pop(b)>0).slice(0,12),`<a href="#catalog">${t("Browse all")}</a>`)}
+ ${rail("New arrivals",fresh)}
+ ${rail("Available today",free.slice(0,12))}
+ ${Object.keys(gc).length?`<section class="sec"><div class="sech"><h2>${t("Browse by genre")}</h2></div><div class="genres">${Object.entries(gc).sort().map(([g,n])=>`<button class="gt" data-genre="${esc(g)}">${esc(t(g))}<span>${n}</span></button>`).join("")}</div></section>`:""}
+ ${S.loaded.books&&!S.books.length?`<div class="empty" style="margin-top:24px"><h3>${t("The shelves are empty")}</h3>${t("An admin can add the first books from the Admin page.")}</div>`:""}
+ <div class="foot"><span>${sch().full} · ${t("School library")}</span><span>${t("Borrow at the desk with your student ID")}</span></div>`;
+}
+
+Object.assign(UZ,{
+"Removed student":"O'chirilgan o'quvchi","Could not save. Check your connection or your access.":"Saqlab bo'lmadi. Ulanish yoki ruxsatingizni tekshiring.","Due today":"Bugun topshirish kerak",
+"{n} of {total} available":"{total} tadan {n} tasi mavjud","Not available · 0 of {total}":"Mavjud emas · {total} tadan 0 ta","back ~{d}":"qaytadi ~{d}",
+"Search by title or author":"Nomi yoki muallifi bo'yicha qidirish","Search books":"Kitob qidirish","Log in to see this page":"Bu sahifani ko'rish uchun tizimga kiring",
+"Create a library account or log in first.":"Avval kutubxona akkauntini yarating yoki tizimga kiring.","Log in or register":"Kirish yoki ro'yxatdan o'tish","Library":"Kutubxona","Language":"Til",
+"Log in":"Kirish","Find your next read":"Keyingi kitobingizni toping","{n} titles on our shelves, {free} ready to borrow today.":"Javonlarimizda {n} ta kitob, bugun {free} tasini olish mumkin.",
+"Opening the shelves…":"Javonlar ochilmoqda…","Your books":"Sizning kitoblaringiz","See all":"Hammasi","Browse all":"Hammasini ko'rish","Browse by genre":"Janr bo'yicha ko'rish",
+"The shelves are empty":"Javonlar bo'sh","An admin can add the first books from the Admin page.":"Admin birinchi kitoblarni Admin sahifasidan qo'sha oladi.","School library":"Maktab kutubxonasi",
+"Borrow at the desk with your student ID":"Kitobni o'quvchi ID raqamingiz bilan kutubxona stolidan oling","Catalog":"Katalog","Genre":"Janr","All":"Hammasi","Book language":"Kitob tili",
+"Stock":"Mavjudligi","Available now":"Hozir mavjud","Sort":"Saralash","{n} of {total} titles":"{total} tadan {n} ta kitob","Loading the shelves…":"Javonlar yuklanmoqda…",
+"Book not found":"Kitob topilmadi","Back to the catalog":"Katalogga qaytish","Loading…":"Yuklanmoqda…","Saved to my list":"Ro'yxatimga saqlandi","Save to my list":"Ro'yxatimga saqlash","Shelf":"Javon",
+"The next copy is due back {d}.":"Keyingi nusxa {d} sanasigacha qaytariladi.","Borrow it at the library desk with your student ID.":"Uni o'quvchi ID raqamingiz bilan kutubxona stolidan oling.",
+"You have this book.":"Bu kitob sizda.","No description yet.":"Hozircha tavsif yo'q.","Check out":"Berish","Edit book":"Kitobni tahrirlash","Borrowed by":"Kimda","Student":"O'quvchi","ID":"ID","Class":"Sinf",
+"Due":"Muddat","Overdue":"Muddati o'tgan","Mark returned":"Qaytarildi","More in {g}":"Yana: {g}","My list":"Mening ro'yxatim","Books you saved and books you borrowed.":"Saqlagan va olgan kitoblaringiz.",
+"Returned {d}":"Qaytarilgan: {d}","No library account yet":"Kutubxona akkaunti hali yo'q","Create one to borrow books and keep a history.":"Kitob olish va tarixni saqlash uchun akkaunt yarating.",
+"Register":"Ro'yxatdan o'tish","Suspended":"To'xtatilgan","Active":"Faol","Your borrowing is paused. Please talk to the librarian.":"Kitob olishingiz to'xtatilgan. Iltimos, kutubxonachiga murojaat qiling.",
+"Reason:":"Sabab:","borrowed now":"hozir qo'lida","returned":"qaytarilgan","overdue":"muddati o'tgan","saved":"saqlangan","Book history":"Kitoblar tarixi","Book":"Kitob","Borrowed":"Olingan","Status":"Holati",
+"Removed book":"O'chirilgan kitob","Reading":"O'qilmoqda","Welcome back, {n}":"Xush kelibsiz, {n}","You are logged in. Your ID is":"Siz tizimdasiz. ID raqamingiz:","Open my profile":"Profilimni ochish",
+"Browse books":"Kitoblarni ko'rish","Open this site while signed in to your account, then come back to this page. Your library account is linked to that sign-in.":"Saytni o'z akkauntingizga kirgan holda oching, so'ng shu sahifaga qayting. Kutubxona akkauntingiz shu kirishga bog'lanadi.",
+"You are signed in on this device, but no library account is linked to it yet.":"Siz bu qurilmada tizimdasiz, lekin unga kutubxona akkaunti hali bog'lanmagan.","Create my account":"Akkaunt yaratish",
+"Create your account":"Akkauntingizni yarating","It takes a few seconds. You get a unique student ID.":"Bir necha soniya kifoya. Sizga noyob o'quvchi ID raqami beriladi.","Name":"Ism","Family name":"Familiya",
+"Class (for example 9B)":"Sinf (masalan, 9B)","Your reading shelf, wherever you are.":"Sizning kitob javoningiz, qayerda bo'lmang.","Save books for later, see what is due and keep your borrowing history.":"Kitoblarni keyinga saqlang, muddatlarni ko'ring va olgan kitoblaringiz tarixini saqlang.",
+"Books are handed out at the library desk.":"Kitoblar kutubxona stolida beriladi.","Welcome! Your ID is {c}":"Xush kelibsiz! ID raqamingiz: {c}","Admin access needed":"Admin ruxsati kerak",
+"Only library admins can open this page. Ask the site owner to share the site with you as an Editor.":"Bu sahifani faqat kutubxona adminlari ocha oladi. Sayt egasidan saytni sizga Muharrir sifatida ulashishini so'rang.",
+"Search":"Qidirish","Library admin":"Kutubxona admini","{a} titles · {b} on loan · {c} overdue · {d} students · {e} suspended":"{a} kitob · {b} qo'lda · {c} muddati o'tgan · {d} o'quvchi · {e} to'xtatilgan",
+"Returned":"Qaytarilgan","On loan":"Qo'lda","No reason noted":"Sabab ko'rsatilmagan","Reinstate":"Tiklash","Title":"Nomi","Free / total":"Bo'sh / jami","Open":"Ochish","Edit":"Tahrirlash","Delete":"O'chirish",
+"Joined":"Qo'shilgan","Out / total":"Qo'lda / jami","Details":"Tafsilotlar","Remove":"Olib tashlash",
+"This list records who runs the library. Changing the catalog needs Editor access to this site, which the site owner grants from the Share menu.":"Bu ro'yxat kutubxonani kim boshqarishini qayd etadi. Katalogni o'zgartirish uchun saytga Muharrir ruxsati kerak, uni sayt egasi Ulashish menyusidan beradi.",
+"Role":"Rol","Added":"Qo'shilgan","Close":"Yopish","Cancel":"Bekor qilish","Author":"Muallif","Year":"Yil","Copies owned":"Nusxalar soni","Description":"Tavsif","More copies are out than that.":"Qo'lda bundan ko'proq nusxa bor.",
+"Book saved":"Kitob saqlandi","Add a student":"O'quvchi qo'shish","A unique ID is created automatically. Students can also register themselves.":"Noyob ID avtomatik yaratiladi. O'quvchilar o'zlari ham ro'yxatdan o'ta oladi.",
+"Created. ID: {c}":"Yaratildi. ID: {c}","Suspend {n}":"{n} ni to'xtatish","Reason (shown to the student)":"Sabab (o'quvchiga ko'rsatiladi)","Add an admin":"Admin qo'shish","Librarian":"Kutubxonachi","Admin added":"Admin qo'shildi",
+"Check out a book":"Kitob berish","Choose…":"Tanlang…","{n} free":"{n} ta bo'sh","Due back":"Qaytarish muddati","That copy is no longer available.":"Bu nusxa endi mavjud emas.","Checked out":"Kitob berildi","now":"hozir",
+"No books borrowed yet.":"Hali kitob olinmagan.","Sure?":"Aniqmi?","Log in to save books":"Kitob saqlash uchun tizimga kiring","Marked returned":"Qaytarildi deb belgilandi","Reinstated":"Tiklandi",
+"Copies are still on loan.":"Nusxalar hali qo'lda.","Book deleted":"Kitob o'chirildi","Student still has books out.":"O'quvchida hali kitoblar bor.","Student removed":"O'quvchi olib tashlandi","Removed":"Olib tashlandi",
+"Could not connect to the library data.":"Kutubxona ma'lumotlariga ulanib bo'lmadi.","Overdue by {n} day":"{n} kun kechikkan","Overdue by {n} days":"{n} kun kechikkan","Due in {n} day":"{n} kundan keyin","Due in {n} days":"{n} kundan keyin",
+"Nothing matches":"Hech narsa topilmadi","Try a different word or clear the filters.":"Boshqa so'z kiriting yoki filtrlarni tozalang.","An admin can add the first book from the Admin page.":"Admin birinchi kitobni Admin sahifasidan qo'sha oladi.",
+"Add a book":"Kitob qo'shish","No copies out":"Qo'lda nusxa yo'q","Every copy is on the shelf.":"Barcha nusxalar javonda.","No books yet":"Hali kitoblar yo'q","Pick something from the catalog and ask at the desk.":"Katalogdan tanlang va kutubxona stolida so'rang.",
+"Nothing on loan":"Qo'lda kitob yo'q","No books are currently borrowed.":"Hozir hech qanday kitob olinmagan.","Nothing overdue":"Muddati o'tgan kitob yo'q","All borrowed books are within their due date.":"Barcha kitoblar muddati ichida.",
+"No suspended students":"To'xtatilgan o'quvchilar yo'q","Everyone can borrow.":"Hamma kitob olishi mumkin.","No loans yet":"Hali berilgan kitoblar yo'q","Use Check out a book when a student borrows something.":"O'quvchi kitob olganda «Kitob berish» tugmasidan foydalaning.",
+"No books found":"Kitoblar topilmadi","Add one with the button above.":"Yuqoridagi tugma bilan qo'shing.","No students found":"O'quvchilar topilmadi","Students can register themselves, or you can add one here.":"O'quvchilar o'zlari ro'yxatdan o'tishi yoki siz shu yerda qo'shishingiz mumkin.",
+"No admins listed":"Adminlar ro'yxati bo'sh","Add the people who manage the library.":"Kutubxonani boshqaradigan odamlarni qo'shing.","Home":"Bosh sahifa","A to Z":"A dan Z gacha","Most borrowed":"Eng ko'p olingan",
+"Newest added":"Eng yangi","Most copies free":"Eng ko'p bo'sh nusxa","Saved":"Saqlangan","Borrowed now":"Hozir qo'lida","Overview":"Umumiy ko'rinish","Loans":"Berilganlar","Books":"Kitoblar","Students":"O'quvchilar","Admins":"Adminlar",
+"Add book":"Kitob qo'shish","Add student":"O'quvchi qo'shish","Add admin":"Admin qo'shish","Uzbek":"O'zbekcha","English":"Inglizcha","Russian":"Ruscha","Popular right now":"Hozir mashhur","New arrivals":"Yangi kelganlar",
+"Available today":"Bugun mavjud","Nothing saved yet":"Hali hech narsa saqlanmagan","No books borrowed":"Olingan kitoblar yo'q","No returned books yet":"Qaytarilgan kitoblar yo'q","Open a book and press Save to my list.":"Kitobni oching va «Ro'yxatimga saqlash» tugmasini bosing.",
+"Ask for a book at the library desk.":"Kitobni kutubxona stolida so'rang.","On loan now":"Hozir qo'lda","Overdue loans":"Muddati o'tgan kitoblar","Suspended students":"To'xtatilgan o'quvchilar","Suspend":"To'xtatish","Save":"Saqlash",
+"Create account":"Akkaunt yaratish","Add":"Qo'shish","Account":"Akkaunt","Self-registered":"O'zi ro'yxatdan o'tgan","Added by admin":"Admin qo'shgan",
+"Classics":"Klassika","Fantasy":"Fentezi","Sci-Fi":"Ilmiy fantastika","Science":"Fan","History":"Tarix","Fiction":"Badiiy adabiyot","Poetry":"She'riyat"});
+
+/* ---------- catalog ---------- */
+function viewCatalog(){
+ $("#main").innerHTML=`<div class="head"><div><h1>${t("Catalog")}</h1><p class="sub" id="count"></p></div>${searchBox("q",S.q)}</div><div class="cat"><aside class="filt" id="filt"></aside><div id="grid" class="grid"></div></div>`;
+ $("#q").oninput=e=>{S.q=e.target.value;paintCatalog()};
+ $("#q").closest("form").onsubmit=e=>e.preventDefault();
+ $("#filt").onclick=e=>{const g=e.target.closest("[data-g]"),l=e.target.closest("[data-bl]");if(g){S.genre=g.dataset.g;paintCatalog()}if(l){S.blang=l.dataset.bl;paintCatalog()}if(e.target.closest("#only")){S.only=!S.only;paintCatalog()}};
+ $("#filt").onchange=e=>{S.sort=e.target.value;paintCatalog()};
+ paintCatalog();
+}
+function paintCatalog(){
+ if(route!=="catalog"||!$("#grid"))return;
+ const gc={},lc={};S.books.forEach(b=>{if(b.genre)gc[b.genre]=(gc[b.genre]||0)+1;lc[blang(b)]=(lc[blang(b)]||0)+1});
+ $("#filt").innerHTML=`<h4>${t("Genre")}</h4><button aria-pressed="${S.genre==="All"}" data-g="All">${t("All")}<span>${S.books.length}</span></button>${Object.keys(gc).sort().map(g=>`<button aria-pressed="${S.genre===g}" data-g="${esc(g)}">${esc(t(g))}<span>${gc[g]}</span></button>`).join("")}
+ <h4>${t("Book language")}</h4><button aria-pressed="${S.blang==="all"}" data-bl="all">${t("All")}</button>${LANGS.map(l=>`<button aria-pressed="${S.blang===l}" data-bl="${l}">${lname(l)}<span>${lc[l]||0}</span></button>`).join("")}
+ <h4>${t("Stock")}</h4><button id="only" aria-pressed="${S.only}">${t("Available now")}</button><h4>${t("Sort")}</h4><select aria-label="${t("Sort")}">${[["title","A to Z"],["author","Author"],["pop","Most borrowed"],["new","Newest added"],["stock","Most copies free"]].map(([v,n])=>`<option value="${v}">${t(n)}</option>`).join("")}</select>`;
+ $("#filt select").value=S.sort;
+ const q=S.q.trim().toLowerCase();
+ const L=S.books.filter(b=>(S.genre==="All"||b.genre===S.genre)&&(S.blang==="all"||blang(b)===S.blang)&&(!S.only||avail(b)>0)&&(!q||(b.title+" "+b.author).toLowerCase().includes(q)));
+ L.sort({title:(a,b)=>a.title.localeCompare(b.title),author:(a,b)=>a.author.localeCompare(b.author),pop:(a,b)=>pop(b)-pop(a),new:(a,b)=>(b.added||0)-(a.added||0),stock:(a,b)=>avail(b)-avail(a)}[S.sort]);
+ $("#count").textContent=S.loaded.books?t("{n} of {total} titles",{n:L.length,total:S.books.length}):t("Loading the shelves…");
+ $("#grid").innerHTML=L.length?L.map(b=>card(b)).join(""):`<div class="empty" style="grid-column:1/-1"><h3>${t(S.books.length?"Nothing matches":"The shelves are empty")}</h3>${t(S.books.length?"Try a different word or clear the filters.":"An admin can add the first book from the Admin page.")}</div>`;
+}
+
+/* ---------- book page ---------- */
+function paintBook(){
+ const b=bookOf(S.bid);
+ if(!b){$("#main").innerHTML=S.loaded.books?`<div class="empty"><h3>${t("Book not found")}</h3><a href="#catalog">${t("Back to the catalog")}</a></div>`:`<p class="sub">${t("Loading…")}</p>`;return}
+ const o=out(b.id),a=avail(b),saved=S.saved.includes(b.id),mine=S.me&&o.find(l=>l.studentId===S.me.id);
+ const more=S.books.filter(x=>x.genre===b.genre&&x.id!==b.id).slice(0,10);
+ $("#main").innerHTML=`<a class="crumb" href="#catalog">← ${t("Catalog")}</a>
+ <div class="bk"><div>${cover(b,true).replace('cover big','cover')}<button class="btn" style="width:100%;margin-top:12px" data-act="save" data-b="${b.id}">${saved?"✓ "+t("Saved to my list"):"+ "+t("Save to my list")}</button></div>
+ <div><h1>${esc(b.title)}</h1><div class="sub" style="font-size:16px">${esc(b.author)}</div>
+ <div class="row" style="justify-content:flex-start;margin-top:12px"><span class="pill">${lname(blang(b))}</span>${b.genre?`<span class="pill">${esc(t(b.genre))}</span>`:""}${b.year?`<span class="pill">${esc(b.year)}</span>`:""}${b.shelf?`<span class="pill">${t("Shelf")} ${esc(b.shelf)}</span>`:""}</div>
+ <div class="panel avl"><b style="color:var(${a?"--ok":"--bad"})">${a?t("{n} of {total} available",{n:a,total:b.total}):t("Not available · 0 of {total}",{total:b.total})}</b>
+ <div class="dots" aria-hidden="true">${Array.from({length:b.total},(_,i)=>`<i class="${i<a?"f":""}"></i>`).join("")}</div>
+ ${!a&&o.length?`<p class="sub" style="margin:10px 0 0">${t("The next copy is due back {d}.",{d:fmt(o.map(l=>l.due).sort()[0])})}</p>`:`<p class="sub" style="margin:10px 0 0">${t("Borrow it at the library desk with your student ID.")}</p>`}
+ ${mine?`<p style="margin:10px 0 0">${t("You have this book.")} ${dueInfo(mine)}</p>`:""}</div>
+ <p style="max-width:62ch;font-size:15px">${esc(b.desc||t("No description yet."))}</p>
+ ${S.canEdit?`<div class="row" style="justify-content:flex-start;margin:14px 0"><button class="btn pri" data-act="checkout" data-b="${b.id}" ${a?"":"disabled"}>${t("Check out")}</button><button class="btn" data-act="editbook" data-b="${b.id}">${t("Edit book")}</button></div>
+ <h2 style="font-size:17px;margin:20px 0 10px">${t("Borrowed by")}</h2><div class="panel tw">${o.length?`<table><thead><tr><th>${t("Student")}</th><th>${t("ID")}</th><th>${t("Class")}</th><th>${t("Due")}</th><th></th></tr></thead><tbody>${o.map(l=>{const s=stuOf(l.studentId);return `<tr><td><b>${esc(sname(s))}</b></td><td class="mono">${s?esc(code(s)):""}</td><td>${s?esc(s.grade||""):""}</td><td>${fmt(l.due)} ${isLate(l)?`<span class="pill bad">${t("Overdue")}</span>`:""}</td><td class="r"><button class="btn sm" data-act="return" data-l="${l.id}">${t("Mark returned")}</button></td></tr>`}).join("")}</tbody></table>`:empty("No copies out","Every copy is on the shelf.")}</div>`:""}</div></div>
+ ${more.length?`<section class="sec"><div class="sech"><h2>${t("More in {g}",{g:t(b.genre)})}</h2></div><div class="rail">${more.map(x=>card(x)).join("")}</div></section>`:""}`;
+}
+
+/* ---------- my list ---------- */
+function paintList(){
+ if(!S.uid){$("#main").innerHTML=needLogin();return}
+ const L=S.me?S.loans.filter(l=>l.studentId===S.me.id):[];
+ const tabs={saved:S.saved.map(bookOf).filter(Boolean),reading:L.filter(l=>!l.returnedAt),done:L.filter(l=>l.returnedAt)};
+ const T=[["saved","Saved"],["reading","Borrowed now"],["done","Returned"]],items=tabs[S.ltab];
+ $("#main").innerHTML=`<div class="head"><div><h1>${t("My list")}</h1><p class="sub">${t("Books you saved and books you borrowed.")}</p></div></div>
+ <div class="tabs">${T.map(([k,n])=>`<button aria-selected="${S.ltab===k}" data-ltab="${k}">${t(n)} (${tabs[k].length})</button>`).join("")}</div>
+ ${items.length?`<div class="grid">${S.ltab==="saved"?items.map(b=>card(b)).join(""):items.map(l=>{const b=bookOf(l.bookId);return b?card(b,l.returnedAt?`<div class="stock" style="color:var(--mute)">${t("Returned {d}",{d:fmt(l.returnedAt)})}</div>`:`<div style="margin-top:2px">${dueInfo(l)}</div>`):""}).join("")}</div>`:
+ `<div class="empty"><h3>${t(S.ltab==="saved"?"Nothing saved yet":S.ltab==="reading"?"No books borrowed":"No returned books yet")}</h3>${t(S.ltab==="saved"?"Open a book and press Save to my list.":"Ask for a book at the library desk.")}</div>`}`;
+}
+document.addEventListener("click",e=>{const x=e.target.closest("[data-ltab]");if(x){S.ltab=x.dataset.ltab;paintList()}});
+
+/* ---------- profile ---------- */
+function paintProfile(){
+ const m=S.me;
+ if(!m){$("#main").innerHTML=S.uid&&S.loaded.students?`<div class="empty"><h3>${t("No library account yet")}</h3>${t("Create one to borrow books and keep a history.")}<div style="margin-top:14px"><a class="btn pri" href="#login">${t("Register")}</a></div></div>`:needLogin();return}
+ const L=S.loans.filter(l=>l.studentId===m.id).sort((a,b)=>b.out.localeCompare(a.out)),now=L.filter(l=>!l.returnedAt);
+ $("#main").innerHTML=`<div class="panel me"><div><h1>${esc(sname(m))}</h1><p class="sub">${esc(m.grade||t("Student"))} · ${t("ID")} <span class="id">${esc(code(m))}</span></p></div>
+ <div>${banned(m)?`<span class="pill bad">${t("Suspended")}</span>`:`<span class="pill ok">${t("Active")}</span>`}</div></div>
+ ${banned(m)?`<div class="note" style="margin-top:16px">${t("Your borrowing is paused. Please talk to the librarian.")}${S.bans[m.id].reason?` ${t("Reason:")} ${esc(S.bans[m.id].reason)}`:""}</div>`:""}
+ <div class="sum" style="margin-top:20px"><span><b>${now.length}</b> ${t("borrowed now")}</span><span><b>${L.length-now.length}</b> ${t("returned")}</span><span><b>${now.filter(isLate).length}</b> ${t("overdue")}</span><span><b>${S.saved.length}</b> ${t("saved")}</span></div>
+ <h2 style="font-size:18px;margin-bottom:10px">${t("Book history")}</h2>
+ <div class="panel tw">${L.length?`<table><thead><tr><th>${t("Book")}</th><th>${t("Borrowed")}</th><th>${t("Due")}</th><th>${t("Status")}</th></tr></thead><tbody>${L.map(l=>{const b=bookOf(l.bookId)||{title:t("Removed book"),author:""};
+ return `<tr><td><b>${esc(b.title)}</b><div class="ca">${esc(b.author)}</div></td><td>${fmt(l.out)}</td><td>${fmt(l.due)}</td><td>${l.returnedAt?`<span class="pill">${t("Returned {d}",{d:fmt(l.returnedAt)})}</span>`:isLate(l)?`<span class="pill bad">${t("Overdue")}</span>`:`<span class="pill warn">${t("Reading")}</span>`}</td></tr>`}).join("")}</tbody></table>`:empty("No books yet","Pick something from the catalog and ask at the desk.")}</div>`;
+}
+
+/* ---------- login / register ---------- */
+function viewLogin(){
+ const m=S.me;let body;
+ if(m){body=`<h1 style="font-size:26px">${t("Welcome back, {n}",{n:esc(m.first)})}</h1><p class="sub">${t("You are logged in. Your ID is")} <span class="id">${esc(code(m))}</span></p><div class="row" style="justify-content:flex-start;margin-top:20px"><a class="btn pri" href="#profile">${t("Open my profile")}</a><a class="btn" href="#catalog">${t("Browse books")}</a></div>`}
+ else if(!S.uid){body=`<h1 style="font-size:26px">${t("Log in")}</h1><p class="sub">${t("Open this site while signed in to your account, then come back to this page. Your library account is linked to that sign-in.")}</p>`}
+ else{body=`<div class="seg"><button aria-pressed="${S.atab==="login"}" data-atab="login">${t("Log in")}</button><button aria-pressed="${S.atab==="register"}" data-atab="register">${t("Register")}</button></div>
+ ${S.atab==="login"?`<h1 style="font-size:26px">${t("Log in")}</h1><p class="sub">${t("You are signed in on this device, but no library account is linked to it yet.")}</p><button class="btn pri" style="margin-top:16px" data-atab="register">${t("Create my account")}</button>`:
+ `<h1 style="font-size:26px">${t("Create your account")}</h1><p class="sub">${t("It takes a few seconds. You get a unique student ID.")}</p><form id="rf" style="margin-top:18px"><div class="two">${fld("fn",t("Name"),"","text",'required maxlength="40" autocomplete="given-name"')}${fld("ln",t("Family name"),"","text",'required maxlength="40" autocomplete="family-name"')}</div>${fld("gr",t("Class (for example 9B)"),"","text",'maxlength="10"')}<button class="btn pri" style="width:100%">${t("Register")}</button></form>`}`}
+ $("#main").innerHTML=`<div class="panel auth"><div class="aside"><div><div class="eyebrow">${sch().full}</div><h2>${t("Your reading shelf, wherever you are.")}</h2><p class="sub">${t("Save books for later, see what is due and keep your borrowing history.")}</p></div><span class="sub">${t("Books are handed out at the library desk.")}</span></div><div class="form">${body}</div></div>`;
+ const f=$("#rf");if(f)f.onsubmit=async e=>{e.preventDefault();const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let c;do{c="ST-"+Array.from({length:5},()=>A[Math.random()*A.length|0]).join("")}while(S.students.some(s=>code(s)===c));
+  const d={first:$("#fn").value.trim(),last:$("#ln").value.trim(),grade:$("#gr").value.trim(),code:c,joined:Date.now()};if(!d.first||!d.last)return;
+  if(await save(()=>DB.doc("students/"+S.uid).set(d))){toast(t("Welcome! Your ID is {c}",{c}));location.hash="profile"}};
+}
+function paintLogin(){if(document.activeElement&&/^(fn|ln|gr)$/.test(document.activeElement.id))return;viewLogin()}
+document.addEventListener("click",e=>{const x=e.target.closest("[data-atab]");if(x){S.atab=x.dataset.atab;viewLogin()}});
+
+/* ---------- admin (sidebar only for admins) ---------- */
+const AT=[["overview","Overview"],["loans","Loans"],["books","Books"],["students","Students"],["admins","Admins"]];
+function viewAdmin(){
+ if(!S.canEdit){$("#main").innerHTML=`<div class="empty"><h3>${t("Admin access needed")}</h3>${t("Only library admins can open this page. Ask the site owner to share the site with you as an Editor.")}</div>`;return}
+ const add={loans:["checkout","Check out a book"],books:["addbook","Add book"],students:["addstu","Add student"],admins:["addadm","Add admin"]}[S.tab];
+ $("#main").innerHTML=`<div class="adm"><aside class="side" id="side"></aside><section style="min-width:0"><div class="head"><div><h1>${t(AT.find(x=>x[0]===S.tab)[1])}</h1><p class="sub" id="asum"></p></div></div>
+ <div class="tools">${S.tab==="books"||S.tab==="students"?`<div class="search" style="max-width:300px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq" type="search" placeholder="${t("Search")}" value="${esc(S.sq)}"></div>`:""}<span class="spacer"></span>${add?`<button class="btn pri" data-act="${add[0]}">${t(add[1])}</button>`:""}</div>
+ <div id="alist"></div></section></div>`;
+ const q=$("#sq");if(q)q.oninput=e=>{S.sq=e.target.value;paintAdmin()};
+ paintAdmin();
+}
+function paintAdmin(){
+ if(route!=="admin"||!S.canEdit||!$("#alist"))return;
+ const act=S.loans.filter(l=>!l.returnedAt),late=act.filter(isLate),sus=S.students.filter(banned);
+ $("#side").innerHTML=`<h4>${t("Library admin")}</h4>${AT.map(([k,n])=>`<a href="#admin${k==="overview"?"":"-"+k}" ${S.tab===k?'aria-current="page"':""}>${t(n)}${k==="loans"&&act.length?`<span class="pill ${late.length?"bad":""}">${act.length}</span>`:""}${k==="students"?`<span class="pill">${S.students.length}</span>`:""}</a>`).join("")}`;
+ $("#asum").innerHTML=t("{a} titles · {b} on loan · {c} overdue · {d} students · {e} suspended",{a:`<b>${S.books.length}</b>`,b:`<b>${act.length}</b>`,c:`<b>${late.length}</b>`,d:`<b>${S.students.length}</b>`,e:`<b>${sus.length}</b>`});
+ const q=S.sq.trim().toLowerCase(),A=$("#alist");let h="";
+ const st=l=>l.returnedAt?`<span class="pill">${t("Returned")}</span>`:isLate(l)?`<span class="pill bad">${t("Overdue")}</span>`:`<span class="pill warn">${t("On loan")}</span>`;
+ const loanRows=L=>`<table><thead><tr><th>${t("Book")}</th><th>${t("Student")}</th><th>${t("Borrowed")}</th><th>${t("Due")}</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${L.map(l=>{const b=bookOf(l.bookId),s=stuOf(l.studentId);
+  return `<tr><td>${esc(b?b.title:t("Removed book"))}</td><td><b>${esc(sname(s))}</b><div class="mono ca">${s?esc(code(s))+(s.grade?" · "+esc(s.grade):""):""}</div></td><td>${fmt(l.out)}</td><td>${fmt(l.due)}</td><td>${st(l)}</td><td class="r">${l.returnedAt?"":`<button class="btn sm" data-act="return" data-l="${l.id}">${t("Mark returned")}</button>`}</td></tr>`}).join("")}</tbody></table>`;
+ const H=s=>`<h2 style="font-size:17px;margin:${h?24:0}px 0 10px">${t(s)}</h2>`;
+ if(S.tab==="overview"){const byDue=[...act].sort((a,b)=>a.due.localeCompare(b.due));
+  h=H("On loan now")+`<div class="panel tw">${byDue.length?loanRows(byDue.slice(0,10)):empty("Nothing on loan","No books are currently borrowed.")}</div>`;
+  h+=H("Overdue loans")+`<div class="panel tw">${late.length?loanRows(late):empty("Nothing overdue","All borrowed books are within their due date.")}</div>`;
+  h+=H("Suspended students")+`<div class="panel">${sus.length?sus.map(s=>`<div class="loan" style="cursor:default"><div><b>${esc(sname(s))}</b><div class="ca">${esc(S.bans[s.id].reason||t("No reason noted"))}</div></div><button class="btn sm" data-act="ban" data-s="${s.id}">${t("Reinstate")}</button></div>`).join(""):empty("No suspended students","Everyone can borrow.")}</div>`}
+ if(S.tab==="loans"){const L=[...S.loans].sort((a,b)=>(!!a.returnedAt-!!b.returnedAt)||b.out.localeCompare(a.out)).slice(0,80);
+  h=`<div class="panel tw">${L.length?loanRows(L):empty("No loans yet","Use Check out a book when a student borrows something.")}</div>`}
+ if(S.tab==="books"){const L=S.books.filter(b=>!q||(b.title+b.author+(b.genre||"")).toLowerCase().includes(q)).sort((a,b)=>a.title.localeCompare(b.title));
+  h=`<div class="panel tw">${L.length?`<table><thead><tr><th>${t("Title")}</th><th>${t("Language")}</th><th>${t("Genre")}</th><th>${t("Free / total")}</th><th>${t("Borrowed by")}</th><th></th></tr></thead><tbody>${L.map(b=>`<tr><td><b>${esc(b.title)}</b><div class="ca">${esc(b.author)}</div></td><td>${lname(blang(b))}</td><td>${esc(t(b.genre||""))}</td><td><span class="pill ${avail(b)?"ok":"bad"}">${avail(b)} / ${b.total}</span></td><td>${out(b.id).map(l=>`<div class="ca" style="white-space:normal">${esc(sname(stuOf(l.studentId)))}</div>`).join("")||'<span class="ca">-</span>'}</td><td class="r"><div class="row"><button class="btn sm" data-act="openbook" data-b="${b.id}">${t("Open")}</button><button class="btn sm" data-act="editbook" data-b="${b.id}">${t("Edit")}</button><button class="btn sm dng" data-act="delbook" data-b="${b.id}">${t("Delete")}</button></div></td></tr>`).join("")}</tbody></table>`:empty("No books found","Add one with the button above.")}</div>`}
+ if(S.tab==="students"){const L=S.students.filter(s=>!q||(s.first+" "+s.last+code(s)+(s.grade||"")).toLowerCase().includes(q)).sort((a,b)=>a.last.localeCompare(b.last));
+  h=`<div class="panel tw">${L.length?`<table><thead><tr><th>${t("Name")}</th><th>${t("Family name")}</th><th>${t("ID")}</th><th>${t("Class")}</th><th>${t("Joined")}</th><th>${t("Out / total")}</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${L.map(s=>{const mine=S.loans.filter(l=>l.studentId===s.id);return `<tr><td><b>${esc(s.first)}</b></td><td><b>${esc(s.last)}</b></td><td><span class="id">${esc(code(s))}</span></td><td>${esc(s.grade||"")}</td><td>${fmt(s.joined)}</td><td>${mine.filter(l=>!l.returnedAt).length} / ${mine.length}</td><td>${banned(s)?`<span class="pill bad">${t("Suspended")}</span>`:`<span class="pill ok">${t("Active")}</span>`}</td><td class="r"><div class="row"><button class="btn sm" data-act="stu" data-s="${s.id}">${t("Details")}</button><button class="btn sm" data-act="${banned(s)?"ban":"banform"}" data-s="${s.id}">${t(banned(s)?"Reinstate":"Suspend")}</button><button class="btn sm dng" data-act="delstu" data-s="${s.id}">${t("Remove")}</button></div></td></tr>`}).join("")}</tbody></table>`:empty("No students found","Students can register themselves, or you can add one here.")}</div>`}
+ if(S.tab==="admins"){h=`<div class="note">${t("This list records who runs the library. Changing the catalog needs Editor access to this site, which the site owner grants from the Share menu.")}</div><div class="panel tw">`+
+  (S.admins.length?`<table><thead><tr><th>${t("Name")}</th><th>${t("Role")}</th><th>${t("Added")}</th><th></th></tr></thead><tbody>${S.admins.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td><span class="pill ${a.role==="Admin"?"ok":""}">${t(a.role)}</span></td><td>${fmt(a.added)}</td><td class="r"><button class="btn sm dng" data-act="deladm" data-a="${a.id}">${t("Remove")}</button></td></tr>`).join("")}</tbody></table>`:empty("No admins listed","Add the people who manage the library."))+`</div>`}
+ A.innerHTML=h;
+}
+
+/* ---------- forms ---------- */
+function openLayer(html,mid){const l=$("#layer");l.innerHTML=`<div class="ov${mid?" mid":""}"><div class="sheet" role="dialog" aria-modal="true"><button class="x" aria-label="${t("Close")}" data-close>×</button>${html}</div></div>`;
+ l.onclick=e=>{if(e.target.matches("[data-close]")||e.target.classList.contains("ov"))closeLayer()};const f=l.querySelector("input,select,textarea");f&&f.focus()}
+function closeLayer(){$("#layer").innerHTML=""}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLayer()});
+const fld=(id,l,v="",ty="text",x="")=>`<div class="field"><label for="${id}">${l}</label><input id="${id}" type="${ty}" value="${esc(v)}" ${x}></div>`;
+const btns=(ok)=>`<div class="row"><button type="button" class="btn" data-close>${t("Cancel")}</button><button class="btn pri">${t(ok)}</button></div>`;
+function bookForm(id){const b=id?bookOf(id):{};
+ openLayer(`<h2>${t(id?"Edit book":"Add a book")}</h2><form id="f" style="margin-top:16px">${fld("t",t("Title"),b.title,"text","required")}${fld("a",t("Author"),b.author,"text","required")}
+ <div class="two">${fld("g",t("Genre"),b.genre,"text",'list="gl"')}<div class="field"><label for="bl">${t("Book language")}</label><select id="bl">${LANGS.map(l=>`<option value="${l}" ${blang(b)===l?"selected":""}>${lname(l)}</option>`).join("")}</select></div></div>
+ <datalist id="gl">${[...new Set(S.books.map(x=>x.genre).filter(Boolean))].map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+ <div class="two">${fld("y",t("Year"),b.year,"number")}${fld("n",t("Copies owned"),b.total??1,"number",`min="${id?Math.max(1,out(id).length):1}" required`)}</div>${fld("sh",t("Shelf"),b.shelf)}
+ <div class="field"><label for="d">${t("Description")}</label><textarea id="d">${esc(b.desc||"")}</textarea></div>${btns("Save")}</form>`,true);
+ $("#f").onsubmit=async e=>{e.preventDefault();const d={title:$("#t").value.trim(),author:$("#a").value.trim(),genre:$("#g").value.trim(),lang:$("#bl").value,year:$("#y").value,total:Math.max(1,+$("#n").value||1),shelf:$("#sh").value.trim(),desc:$("#d").value.trim()};
+  if(id&&d.total<out(id).length){toast(t("More copies are out than that."));return}
+  if(await save(async()=>{if(id)await DB.doc("books/"+id).update(d);else await DB.doc("books/"+uid("b-")).set({...d,added:Date.now()})})){closeLayer();toast(t("Book saved"))}}}
+function stuForm(){openLayer(`<h2>${t("Add a student")}</h2><form id="f" style="margin-top:16px"><div class="two">${fld("fn",t("Name"),"","text","required")}${fld("ln",t("Family name"),"","text","required")}</div>${fld("gr",t("Class (for example 9B)"))}
+ <p class="sub">${t("A unique ID is created automatically. Students can also register themselves.")}</p>${btns("Create account")}</form>`,true);
+ $("#f").onsubmit=async e=>{e.preventDefault();const A="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let c;do{c="ST-"+Array.from({length:5},()=>A[Math.random()*A.length|0]).join("")}while(S.students.some(s=>code(s)===c));
+  if(await save(()=>DB.doc("students/"+c).set({first:$("#fn").value.trim(),last:$("#ln").value.trim(),grade:$("#gr").value.trim(),code:c,joined:Date.now()}))){closeLayer();toast(t("Created. ID: {c}",{c}))}}}
+function banForm(sid){const s=stuOf(sid);openLayer(`<h2>${t("Suspend {n}",{n:esc(sname(s))})}</h2><form id="f" style="margin-top:16px"><div class="field"><label for="rs">${t("Reason (shown to the student)")}</label><textarea id="rs"></textarea></div>${btns("Suspend")}</form>`,true);
+ $("#f").onsubmit=async e=>{e.preventDefault();if(await save(()=>DB.doc("bans/"+sid).set({reason:$("#rs").value.trim(),at:Date.now()}))){closeLayer();toast(t("Suspended"))}}}
+function admForm(){openLayer(`<h2>${t("Add an admin")}</h2><form id="f" style="margin-top:16px">${fld("an",t("Name"),"","text","required")}<div class="field"><label for="ar">${t("Role")}</label><select id="ar"><option value="Admin">${t("Admin")}</option><option value="Librarian">${t("Librarian")}</option></select></div>${btns("Add")}</form>`,true);
+ $("#f").onsubmit=async e=>{e.preventDefault();if(await save(()=>DB.doc("admins/"+uid("a-")).set({name:$("#an").value.trim(),role:$("#ar").value,added:Date.now()}))){closeLayer();toast(t("Admin added"))}}}
+function checkoutForm(bid,sid){const ss=S.students.filter(s=>!banned(s)).sort((a,b)=>a.last.localeCompare(b.last)),bs=S.books.filter(b=>avail(b)>0).sort((a,b)=>a.title.localeCompare(b.title));
+ const due=new Date(Date.now()+14*864e5).toISOString().slice(0,10);
+ openLayer(`<h2>${t("Check out a book")}</h2><form id="f" style="margin-top:16px"><div class="field"><label for="cs">${t("Student")}</label><select id="cs" required><option value="">${t("Choose…")}</option>${ss.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${esc(s.last)}, ${esc(s.first)} (${esc(code(s))})</option>`).join("")}</select></div>
+ <div class="field"><label for="cb">${t("Book")}</label><select id="cb" required><option value="">${t("Choose…")}</option>${bs.map(b=>`<option value="${b.id}" ${b.id===bid?"selected":""}>${esc(b.title)} (${t("{n} free",{n:avail(b)})})</option>`).join("")}</select></div>${fld("cd",t("Due back"),due,"date","required")}${btns("Check out")}</form>`,true);
+ $("#f").onsubmit=async e=>{e.preventDefault();const b=bookOf($("#cb").value),s=stuOf($("#cs").value);if(!b||!s||banned(s)||!avail(b)){toast(t("That copy is no longer available."));return}
+  if(await save(()=>DB.doc("loans/"+uid("l-")).set({bookId:b.id,studentId:s.id,out:new Date().toISOString(),due:new Date($("#cd").value).toISOString(),returnedAt:null}))){closeLayer();toast(t("Checked out"))}}}
+function stuView(sid){const s=stuOf(sid);if(!s)return;const L=S.loans.filter(l=>l.studentId===sid).sort((a,b)=>b.out.localeCompare(a.out));
+ const kv=[["Name",s.first],["Family name",s.last],["ID",code(s)],["Class",s.grade||"-"],["Joined",fmt(s.joined)||"-"],["Account",t(s.id!==code(s)?"Self-registered":"Added by admin")],["Status",banned(s)?t("Suspended")+(S.bans[s.id].reason?": "+S.bans[s.id].reason:""):t("Active")]];
+ openLayer(`<h2>${esc(sname(s))}</h2><div class="kv" style="margin:14px 0">${kv.map(([k,v])=>`<span>${t(k)}</span><b>${esc(v)}</b>`).join("")}</div><h3 style="font-size:16px;margin:18px 0 6px">${t("Book history")}</h3>${L.length?L.map(l=>{const b=bookOf(l.bookId);return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(b?b.title:t("Removed book"))}</b><div class="ca">${fmt(l.out)} → ${l.returnedAt?fmt(l.returnedAt):t("now")} ${isLate(l)?`<span class="pill bad">${t("Overdue")}</span>`:""}</div></div>`}).join(""):`<p class="sub">${t("No books borrowed yet.")}</p>`}`)}
+
+/* ---------- events ---------- */
+const sure=(a,label,f)=>{if(a.dataset.sure)return f();a.dataset.sure=1;a.textContent=t("Sure?");setTimeout(()=>{a.dataset.sure="";a.textContent=t(label)},3000)};
+document.addEventListener("click",async e=>{
+ const c=e.target.closest("[data-book]");if(c){location.hash="book-"+c.dataset.book;return}
+ const g=e.target.closest("[data-genre]");if(g){S.genre=g.dataset.genre;S.q="";S.only=false;S.blang="all";location.hash="catalog";return}
+ const a=e.target.closest("[data-act]");if(!a)return;const d=a.dataset;
+ switch(d.act){
+  case"save":{if(!S.uid){toast(t("Log in to save books"));location.hash="login";break}
+   S.saved=S.saved.includes(d.b)?S.saved.filter(x=>x!==d.b):[...S.saved,d.b];repaint();
+   await save(()=>DB.doc("data/users/"+S.uid+"/saved").set({ids:S.saved}));break}
+  case"checkout":checkoutForm(d.b);break;case"addbook":bookForm();break;case"editbook":bookForm(d.b);break;case"addstu":stuForm();break;case"addadm":admForm();break;case"stu":stuView(d.s);break;case"banform":banForm(d.s);break;case"openbook":location.hash="book-"+d.b;break;
+  case"return":if(await save(()=>DB.doc("loans/"+d.l).update({returnedAt:new Date().toISOString()})))toast(t("Marked returned"));break;
+  case"ban":if(await save(()=>DB.doc("bans/"+d.s).delete()))toast(t("Reinstated"));break;
+  case"delbook":if(out(d.b).length)toast(t("Copies are still on loan."));else sure(a,"Delete",async()=>{await save(()=>DB.doc("books/"+d.b).delete());toast(t("Book deleted"))});break;
+  case"delstu":if(S.loans.some(l=>l.studentId===d.s&&!l.returnedAt))toast(t("Student still has books out."));else sure(a,"Remove",async()=>{await save(async()=>{await DB.doc("students/"+d.s).delete();await DB.doc("bans/"+d.s).delete()});toast(t("Student removed"))});break;
+  case"deladm":if(await save(()=>DB.doc("admins/"+d.a).delete()))toast(t("Removed"));break}
+});
+
+/* ---------- routing + boot ---------- */
+const MOUNT={catalog:viewCatalog,admin:viewAdmin,login:viewLogin},PAINT={home:paintHome,catalog:paintCatalog,book:paintBook,list:paintList,profile:paintProfile,login:paintLogin,admin:paintAdmin};
+function go(){const h=(location.hash||"#home").slice(1),prev=route;
+ if(h.startsWith("book-")){route="book";S.bid=h.slice(5)}
+ else if(h==="admin"||h.startsWith("admin-")){route="admin";S.tab=AT.some(x=>x[0]===h.slice(6))?h.slice(6):"overview"}
+ else route=["home","catalog","list","profile","login"].includes(h)?h:"home";
+ if(prev!==route||route==="admin"||route==="book")scrollTo(0,0);
+ if(route!=="admin")S.sq="";
+ header();closeLayer();(MOUNT[route]||PAINT[route])()}
+let raf=0;
+function repaint(){cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{S.me=S.students.find(s=>s.id===S.uid)||null;header();PAINT[route]()})}
+addEventListener("hashchange",go);
+document.documentElement.lang=S.lang;document.title=sch().short+" "+t("Library");
+go();
+(async()=>{
+ const c=window.claude;if(!c)return;
+ const u=await c.use("user");if(u){S.canEdit=!!u.canEdit();S.uid=await u.id()||null}hdrKey="";S.me=null;
+ DB=await c.use("db");if(!DB){toast(t("Could not connect to the library data."));repaint();return}
+ for(const n of["books","students","loans","admins","bans"]){const tm=setTimeout(()=>{S.loaded[n]=true;repaint()},10000);
+  DB.collection(n).onSnapshot(s=>{clearTimeout(tm);if(n==="bans"){S.bans={};s.docs.forEach(d=>S.bans[d.id]=d.data())}else S[n]=s.docs.map(d=>({id:d.id,...d.data()}));S.loaded[n]=true;repaint()},()=>{S.loaded[n]=true;repaint()})}
+ if(S.uid)DB.doc("data/users/"+S.uid+"/saved").onSnapshot(s=>{S.saved=(s.exists&&s.data().ids)||[];repaint()},()=>{});
+ repaint();
+})();
+</script>
+
+</body>
+</html>

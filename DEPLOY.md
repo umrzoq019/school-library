@@ -1,73 +1,59 @@
-# Putting the GulPS / GulPM library online
+# Deploying the GulPS / GulPM library
 
-The website is the plain folder `site/` (no build step). The data lives in a free Supabase project. Students and teachers only need the web address. About 25 minutes, once.
+The website is the static folder `site/` (no build). The data lives in Supabase. Students only need the web address.
 
-## 1. Create the database (Supabase)
+## Already done
 
-1. Sign in at <https://supabase.com> and press **New project**. Choose a region close to Uzbekistan (for example Frankfurt) and save the database password.
-2. Open **SQL Editor > New query**, paste all of `supabase/gulps/schema.sql`, press **Run**. It should finish with "Success".
-3. Optional: run `supabase/gulps/seed.sql` the same way to add 12 sample books (English, Uzbek, Russian).
-4. Open **Project Settings > API** and copy the **Project URL** and the **anon / publishable key**. You need both in step 3. Never use the `service_role` key.
+- The Supabase project **school-library** has the database from `supabase/schema.sql` and 12 sample books (`supabase/seed.sql`).
+- `site/config.js` points at that project. The key in it is the public *anon* key. It is meant to be public: the database rules decide who can read or change what. Never put the `service_role` key anywhere in this repository.
 
-## 2. Set up sign-in (Supabase > Authentication)
+## 1. Publish the site (Netlify, about 5 minutes)
 
-- **Providers > Email**: keep it enabled.
-- **Confirm email**: choose one:
-  - **Off (simplest).** Students can log in right after registering. Protect registration with a school code (step 5) so strangers cannot join.
-  - **On.** Students must click a link in an email. Supabase's built-in email sender only delivers to your own team and is heavily limited, so this needs your own SMTP service (Settings > Authentication > SMTP, for example Brevo or Resend).
-- **Password reset** also sends email, so "Forgot your password?" only works once SMTP is set up. Until then an admin can set a new password: Authentication > Users > the user > Send password recovery, or delete and re-register.
-- **URL Configuration**: after step 4, set **Site URL** to your website address, and add it under **Redirect URLs** as well.
+1. Open <https://app.netlify.com> and sign in with GitHub.
+2. **Add new site > Import an existing project > GitHub**, choose `school-library`, branch `main`.
+3. Netlify reads `netlify.toml` (publish directory `site`, no build command). Press **Deploy**.
+4. **Site configuration > Change site name**: type `gulps`. The address is then **https://gulps.netlify.app** (if taken, `gulps-library` or `gulps-uz`).
 
-## 3. Put your keys in the site
+Any other static host works too (Cloudflare Pages, GitHub Pages, Vercel): publish the `site/` folder.
 
-Edit `site/config.js`:
+### Own address (optional, paid)
 
-```js
-window.GUL_CONFIG = {
-  SUPABASE_URL: "https://YOUR-PROJECT.supabase.co",
-  SUPABASE_ANON_KEY: "YOUR-ANON-KEY"
-};
-```
+`.library` is not a real domain ending, so `gulps.library` cannot be bought. A real one would be `gulps.uz` or `library.gulps.uz`, bought from a `.uz` registrar (check availability and price there). Then in Netlify: **Domain management > Add a domain** and enter the DNS records it shows at the registrar. HTTPS is automatic.
 
-The anon key is meant to be public. The rules in `schema.sql` decide what each person can read and change.
+## 2. Tell Supabase the address (Authentication > URL Configuration)
 
-## 4. Publish the website (Netlify)
+Set **Site URL** to the website address and add it under **Redirect URLs**. Otherwise e-mail links (confirmation, password reset) point to the wrong place.
 
-1. Push this repository to GitHub (the `site/` folder and `netlify.toml` must be in the branch you deploy).
-2. At <https://app.netlify.com> choose **Add new site > Import an existing project**, pick the repository. Netlify reads `netlify.toml`: publish directory `site`, no build command. Press **Deploy**.
-3. Optional: **Domain management** to add your own domain. HTTPS is automatic.
-4. Go back to Supabase and set the Site URL (step 2) to the address Netlify gave you.
+## 3. Choose how sign-up works (Authentication > Providers > Email)
 
-No GitHub? Drag the `site` folder onto <https://app.netlify.com/drop>. Any static host works the same way (Cloudflare Pages, GitHub Pages, Vercel). `netlify.toml` only adds security headers on Netlify.
+- **Confirm email OFF (simplest).** Students can log in right after registering. Use a school code (step 5) so strangers cannot join.
+- **Confirm email ON.** Needs your own e-mail service under Authentication > SMTP (for example Brevo or Resend). Supabase's built-in sender only reaches your own team and is heavily limited.
+- **Forgot password** also needs that SMTP. Until then, an admin can send a recovery link from Authentication > Users.
 
-## A web address students can remember
+## 4. Become the first admin
 
-- **Free, ready in a minute:** in Netlify open **Site configuration > Change site name** and type `gulps`. The site is then at **gulps.netlify.app** (if taken, try `gulps-library` or `gulps-uz`). Put the school name on the school's own pages and posters next to it: "Presidential School in Gulistan library: gulps.netlify.app".
-- **Own domain (about a year's fee, paid to a registrar):** something like `gulps.uz` or `library.gulps.uz`. There is no `.library` ending, so `gulps.library` cannot be bought. Check availability with a `.uz` registrar. Then in Netlify: **Domain management > Add a domain**, follow the DNS records it shows at your registrar, and wait for the automatic HTTPS certificate.
-- After the address changes, update **Supabase > Authentication > URL Configuration** (Site URL and Redirect URLs), or confirmation and reset emails will point to the old address.
-
-## 5. Make yourself the first admin
-
-1. Open your website and **Register** with your own email.
-2. In Supabase **SQL Editor** run (with your email):
+1. Open the website and **Register** with your own e-mail.
+2. In Supabase > **SQL Editor** run (with your e-mail):
 
    ```sql
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
-3. Refresh the website. The **Admin** button appears. More admins and librarians: Admin > **Admins**.
-4. Admin > **Settings**: set a **school code** (people need it to register), the number of books one person may borrow, and whether registration is open.
-5. Admin > **Books**: add books one by one, or **Import CSV** (download the template there).
+3. Reload the site. The **Admin** button appears. More admins and librarians: Admin > **Admins**.
 
-## How it works day to day
+## 5. First setup inside the Admin area
 
-- Students register themselves (surname, first name, class 5-01 to 11-02, email, password) and get a library ID such as `ST-7K2QX`. Teachers register with surname and first name only.
-- Books are handed out at the library desk. Staff open **Admin > Loans > Check out a book**, pick the borrower and the book, and press Check out. **There are no due dates**: a book stays with the borrower until staff press **Mark returned**.
-- When every copy is out, signed-in readers can **Reserve** a book and see their place in the queue. Staff see reservations under **Admin > Reservations**.
-- People without a login (for example a young child) can be added at the desk with **Users > Add user**. They get an ID and can still borrow.
+- **Settings:** set a **school code** (registration then requires it), the number of books one person may borrow, and whether registration is open. Share the code only inside the school.
+- **Books:** delete the sample books and add your own one by one, or use **Import CSV** (template download inside).
+
+## Daily use
+
+- Students register themselves: surname, first name, class, e-mail, password. They get an ID such as `ST-7K2QX`. Teachers register with surname and first name only.
+- Books are handed out at the desk: **Admin > Loans > Check out a book**, choose borrower and book. **Mark returned** when it comes back. There are no due dates.
+- When every copy is out, signed-in readers can **Reserve** and see their queue place. Staff see them under **Admin > Reservations**.
+- A person without a login (for example a young child) can be added at the desk: **Users > Add user**.
 
 ## Good to know
 
-- The free Supabase plan pauses a project after a week without use. Restore it with one click in the dashboard; open the site now and then, or upgrade.
-- Back up from Supabase (Database > Backups on paid plans) or export books, users and loans with the **Export CSV** buttons in Admin.
-- The school-code check cannot stop a determined attacker. It keeps casual strangers out. Anyone who picks "teacher" at registration gets a teacher label only; roles with extra powers can be given only by an admin.
-- The older React prototype in `src/` is no longer deployed and can be deleted.
+- Free Supabase projects pause after a week without use. Restore with one click in the dashboard, or upgrade to avoid it.
+- **Export CSV** in Admin gives backups of books, users and loans.
+- The school code keeps casual strangers out; it is not a defence against a determined attacker. Anyone can pick "teacher" while registering, which only changes their label. Librarian and admin roles can be given only by an admin.

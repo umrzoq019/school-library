@@ -1,0 +1,13 @@
+name: Check site
+on: [push, pull_request]
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Syntax-check the site scripts
+        run: for f in site/config.js site/app/*.js; do node --check "$f"; done
+      - name: No due dates
+        run: "! grep -rniE 'overdue|due_at|due date' site/app/core.js site/app/views.js site/app/admin.js supabase/schema.sql | grep -viE 'no due date|There is no due'"

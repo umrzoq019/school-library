@@ -1,5 +1,4 @@
-# The live site is the plain static folder `site/` (no build step).
-# The older React prototype in `src/` is not deployed any more.
+# The site is the plain static folder `site/` (no build step).
 [build]
   publish = "site"
 

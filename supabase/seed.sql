@@ -1,4 +1,4 @@
--- Optional sample books so the shelves are not empty on day one. Run once, after schema.sql.
+-- Optional sample books (already loaded in the school-library project). Run once, after schema.sql. Delete them in Admin > Books.
 insert into public.books (title, author, genre, lang, year, total, shelf, description) values
  ('The Little Prince', 'Antoine de Saint-Exupéry', 'Fiction', 'en', '1943', 3, 'A-1', 'A pilot stranded in the desert meets a small prince who has travelled from asteroid to asteroid.'),
  ('Pride and Prejudice', 'Jane Austen', 'Classics', 'en', '1813', 2, 'A-2', 'Elizabeth Bennet and Mr Darcy learn to see past first impressions.'),

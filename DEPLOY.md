@@ -40,6 +40,12 @@ The anon key is meant to be public. The rules in `schema.sql` decide what each p
 
 No GitHub? Drag the `site` folder onto <https://app.netlify.com/drop>. Any static host works the same way (Cloudflare Pages, GitHub Pages, Vercel). `netlify.toml` only adds security headers on Netlify.
 
+## A web address students can remember
+
+- **Free, ready in a minute:** in Netlify open **Site configuration > Change site name** and type `gulps`. The site is then at **gulps.netlify.app** (if taken, try `gulps-library` or `gulps-uz`). Put the school name on the school's own pages and posters next to it: "Presidential School in Gulistan library: gulps.netlify.app".
+- **Own domain (about a year's fee, paid to a registrar):** something like `gulps.uz` or `library.gulps.uz`. There is no `.library` ending, so `gulps.library` cannot be bought. Check availability with a `.uz` registrar. Then in Netlify: **Domain management > Add a domain**, follow the DNS records it shows at your registrar, and wait for the automatic HTTPS certificate.
+- After the address changes, update **Supabase > Authentication > URL Configuration** (Site URL and Redirect URLs), or confirmation and reset emails will point to the old address.
+
 ## 5. Make yourself the first admin
 
 1. Open your website and **Register** with your own email.

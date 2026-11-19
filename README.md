@@ -1,3 +1,19 @@
+# GulPS / GulPM School Library
+
+Library website for the **Presidential School in Gulistan (GulPS)** / **Guliston shahridagi Prezident maktabi (GulPM)**.
+
+- Catalog with live availability ("2 of 3 available" or "Not available · 0 of 1"), filters by genre, book language (Uzbek / English / Russian) and stock, ratings and reviews.
+- Student and teacher accounts (surname, first name, class 5-01 to 11-02, unique library ID, book history), reservations with a queue, a personal shelf (want to read / reading / finished).
+- Admin area for staff only: lend and return, reservations, books (CSV import/export), users, roles, bans, reports and settings. Borrowers' names and details are visible to staff.
+- Uzbek / English interface switch, light and dark mode, works on phones.
+- **No due dates.** A book stays with the borrower until staff mark it returned.
+
+**Deploy it: see [DEPLOY.md](DEPLOY.md).** The site is the static folder `site/`; the database is `supabase/gulps/schema.sql` (Supabase). Try it locally with `python3 -m http.server -d site 8000` after filling in `site/config.js`.
+
+---
+
+# Legacy React prototype (not deployed)
+
 # Stacks — School Library
 
 A student-friendly school library web app with a MangaLib-inspired discovery flow: search-first catalog browsing, genre filters, cover-led book cards, and dedicated book pages.

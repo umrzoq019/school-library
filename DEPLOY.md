@@ -7,22 +7,18 @@ The website is the static folder `site/` (no build). The data lives in Supabase.
 - The Supabase project **school-library** has the database from `supabase/schema.sql` and 12 sample books (`supabase/seed.sql`).
 - `site/config.js` points at that project. The key in it is the public *anon* key. It is meant to be public: the database rules decide who can read or change what. Never put the `service_role` key anywhere in this repository.
 
-## 1. Publish the site (Netlify, about 5 minutes)
+## 1. Publish the site (Vercel)
 
-1. Open <https://app.netlify.com> and sign in with GitHub.
-2. **Add new site > Import an existing project > GitHub**, choose `school-library`, branch `main`.
-3. Netlify reads `netlify.toml` (publish directory `site`, no build command). Press **Deploy**.
-4. **Site configuration > Change site name**: type `gulps`. The address is then **https://gulps.netlify.app** (if taken, `gulps-library` or `gulps-uz`).
+The Vercel project **school-library** (team FocusED) is linked to this GitHub repository. Its root directory is `site/`, there is no build step, and every merge to `main` deploys automatically. Security headers are in `site/vercel.json`.
 
-Any other static host works too (Cloudflare Pages, GitHub Pages, Vercel): publish the `site/` folder.
+- Vercel's **Deployment Protection** must not require a Vercel login for the production address, or students cannot open the site: Project Settings > Deployment Protection > turn off **Vercel Authentication** for production.
+- Address: Project Settings > Domains. A free `*.vercel.app` name works (for example `gulps.vercel.app` if it is still free). A paid domain such as `gulps.uz` can be added there too; `.library` is not a real domain ending, so `gulps.library` cannot exist.
 
-### Own address (optional, paid)
-
-`.library` is not a real domain ending, so `gulps.library` cannot be bought. A real one would be `gulps.uz` or `library.gulps.uz`, bought from a `.uz` registrar (check availability and price there). Then in Netlify: **Domain management > Add a domain** and enter the DNS records it shows at the registrar. HTTPS is automatic.
+Any other static host works as well (publish the `site/` folder).
 
 ## 2. Tell Supabase the address (Authentication > URL Configuration)
 
-Set **Site URL** to the website address and add it under **Redirect URLs**. Otherwise e-mail links (confirmation, password reset) point to the wrong place.
+Set **Site URL** to the production address of the website and add it under **Redirect URLs**. Otherwise e-mail links (confirmation, password reset) point to the wrong place.
 
 ## 3. Choose how sign-up works (Authentication > Providers > Email)
 

@@ -13,10 +13,9 @@ Library website of the **Presidential School in Gulistan (GulPS)** / **Guliston 
 
 | Path | What it is |
 | --- | --- |
-| `site/` | The website: plain HTML, CSS and JavaScript, no build step. `config.js` holds the Supabase URL and public key. |
+| `site/` | The website: plain HTML, CSS and JavaScript, no build step. `config.js` holds the Supabase URL and public key; `vercel.json` the hosting headers. |
 | `supabase/schema.sql` | The whole database: tables, access rules, functions. |
 | `supabase/seed.sql` | Optional sample books. |
-| `netlify.toml` | Hosting settings (publish `site/`, security headers). |
 | `DEPLOY.md` | Step-by-step deployment and first-admin guide. |
 
 Try it locally: `python3 -m http.server -d site 8000`, then open <http://localhost:8000>.

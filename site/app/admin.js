@@ -11,7 +11,7 @@ function viewAdmin(){
  <div class="tools">${SEARCHABLE.includes(S.tab)?`<div class="search" style="max-width:300px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq" type="search" placeholder="${t("Search")}" value="${esc(S.sq)}"></div>`:""}
  ${S.tab==="students"?`<select id="rolef" aria-label="${t("Role")}">${["all","student","teacher","librarian","admin"].map(r=>`<option value="${r}" ${S.rolef===r?"selected":""}>${r==="all"?t("All roles"):t({student:"Student",teacher:"Teacher",librarian:"Librarian",admin:"Admin"}[r])}</option>`).join("")}</select>`:""}
  <span class="spacer"></span>
- ${S.tab==="books"?`<button class="btn" data-act="exportbooks">${t("Export CSV")}</button><button class="btn" data-act="importbooks">${t("Import CSV")}</button>`:""}${S.tab==="loans"?`<button class="btn" data-act="exportloans">${t("Export CSV")}</button>`:""}${S.tab==="students"?`<button class="btn" data-act="exportusers">${t("Export CSV")}</button>`:""}
+ ${S.tab==="books"?`<button class="btn" data-act="exportbooks">${t("Export CSV")}</button><button class="btn" data-act="importbooks">${t("Import CSV / Excel")}</button>`:""}${S.tab==="loans"?`<button class="btn" data-act="exportloans">${t("Export CSV")}</button>`:""}${S.tab==="students"?`<button class="btn" data-act="exportusers">${t("Export CSV")}</button>`:""}
  ${add&&!(S.tab==="admins"&&!S.admin)?`<button class="btn pri" data-act="${add[0]}">${t(add[1])}</button>`:""}</div>
  <div id="alist"></div></section></div>`;
  const q=$("#sq");if(q)q.oninput=e=>{S.sq=e.target.value;paintAdmin()};
@@ -79,11 +79,15 @@ function bookForm(id){const b=id?bookOf(id):{};
  <div class="two">${fld("g",t("Genre"),b.genre,"text",'list="gl"')}<div class="field"><label for="bl">${t("Book language")}</label><select id="bl">${LANGS.map(l=>`<option value="${l}" ${blang(b)===l?"selected":""}>${lname(l)}</option>`).join("")}</select></div></div>
  <datalist id="gl">${[...new Set(S.books.map(x=>x.genre).filter(Boolean))].map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
  <div class="two">${fld("y",t("Year"),b.year,"text",'maxlength="10"')}${fld("n",t("Copies owned"),b.total??1,"number",`min="${id?Math.max(1,out(id).length):1}" required`)}</div>
- <div class="two">${fld("sh",t("Shelf"),b.shelf)}${fld("is","ISBN",b.isbn)}</div>${fld("cu",t("Cover image link (optional)"),b.cover,"url",'placeholder="https://"')}
+ <div class="two">${fld("sh",t("Shelf"),b.shelf)}${fld("is","ISBN",b.isbn)}</div><div class="field"><label for="cf">${t("Cover image")}</label><div class="covbox"><div class="cover mini" id="cp" style="background:hsl(${hue(b.title||"x")} 32% 30%)">${safeUrl(b.cover)?`<img src="${esc(safeUrl(b.cover))}" alt="">`:""}</div><div><input id="cf" type="file" accept="image/jpeg,image/png,image/webp" style="height:auto;padding:8px"><div class="ca">${t("Upload a photo of the cover, or paste a link below.")}</div></div></div></div>${fld("cu",t("Cover image link (optional)"),b.cover,"url",'placeholder="https://"')}
  <div class="field"><label for="d">${t("Description")}</label><textarea id="d">${esc(b.desc||"")}</textarea></div>${btns("Save")}</form>`,true);
  $("#f").onsubmit=async e=>{e.preventDefault();const d={title:$("#t").value.trim(),author:$("#a").value.trim(),genre:$("#g").value.trim(),lang:$("#bl").value,year:$("#y").value.trim()||null,total:Math.max(1,+$("#n").value||1),shelf:$("#sh").value.trim()||null,isbn:$("#is").value.trim()||null,cover_url:safeUrl($("#cu").value.trim())||null,description:$("#d").value.trim()};
   if(id&&d.total<out(id).length){toast(t("More copies are out than that."));return}
-  act(()=>must(id?sb.from("books").update(d).eq("id",id):sb.from("books").insert(d)),"Book saved",true)}}
+  const old=id?b.cover:null;
+  act(async()=>{if(blob)d.cover_url=await uploadCover(blob);await must(id?sb.from("books").update(d).eq("id",id):sb.from("books").insert(d));if(old&&old!==d.cover_url)dropCover(old)},"Book saved",true)}
+ let blob=null;$("#cf").onchange=async e=>{const f=e.target.files[0];blob=null;if(!f)return;
+  try{blob=await prepCover(f);const u=URL.createObjectURL(blob);$("#cp").innerHTML=`<img src="${u}" alt="">`;$("#cu").value=""}catch(x){e.target.value="";toast(x.message||t("Could not read that image."))}}
+ $("#cu").oninput=e=>{if(blob){blob=null;$("#cf").value=""}const u=safeUrl(e.target.value.trim());$("#cp").innerHTML=u?`<img src="${esc(u)}" alt="">`:""}}
 function stuForm(){openLayer(`<h2>${t("Add a user")}</h2><form id="f" style="margin-top:16px"><div class="field"><label for="rl">${t("Role")}</label><select id="rl"><option value="student">${t("Student")}</option><option value="teacher">${t("Teacher")}</option></select></div><div id="pf">${personFields("student")}</div>
  <p class="sub">${t("This creates a library record with an ID for the desk. The person can register on the site themselves to log in.")}</p>${btns("Create")}</form>`,true);
  $("#rl").onchange=e=>{const v={last:$("#ln").value,first:$("#fn").value};$("#pf").innerHTML=personFields(e.target.value,v)};
@@ -114,12 +118,7 @@ function csvParse(s){const rows=[];let r=[],c="",q=false;s=s.replace(/^﻿/,"");
  if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
  else if(ch==='"')q=true;else if(ch===","||ch===";"){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);c="";if(r.some(x=>x!==""))rows.push(r);r=[]}else c+=ch}
  r.push(c);if(r.some(x=>x!==""))rows.push(r);return rows}
-const BCOLS=["title","author","genre","lang","year","total","shelf","isbn","cover_url","description"];
-function importBooks(){openLayer(`<h2>${t("Import books from CSV")}</h2><p class="sub">${t("First row must be a header. Columns:")} <code>${BCOLS.join(", ")}</code>. ${t("Language is uz, en or ru. Only title is required.")}</p><p><button class="lnk" data-act="csvtemplate">${t("Download a template")}</button></p><div class="field"><input id="fi" type="file" accept=".csv,text/csv" style="height:auto;padding:8px"></div><div id="pv" class="sub"></div><div class="row"><button type="button" class="btn" data-close>${t("Cancel")}</button><button class="btn pri" id="go" disabled>${t("Import")}</button></div>`,true);
- let rows=[];$("#fi").onchange=async e=>{const f=e.target.files[0];if(!f)return;const R=csvParse(await f.text()),H=R.shift().map(x=>x.trim().toLowerCase());
-  rows=R.map(r=>{const o={};BCOLS.forEach(c=>{const i=H.indexOf(c);o[c]=i<0?"":(r[i]||"").trim()});return {title:o.title,author:o.author,genre:o.genre,lang:["uz","en","ru"].includes(o.lang.toLowerCase())?o.lang.toLowerCase():"en",year:o.year||null,total:Math.max(1,parseInt(o.total)||1),shelf:o.shelf||null,isbn:o.isbn||null,cover_url:safeUrl(o.cover_url)||null,description:o.description}}).filter(r=>r.title);
-  $("#pv").textContent=t("{n} books found.",{n:rows.length});$("#go").disabled=!rows.length};
- $("#go").onclick=async()=>{$("#go").disabled=true;act(async()=>{for(let i=0;i<rows.length;i+=200)await must(sb.from("books").insert(rows.slice(i,i+200)))},null,true).then(ok=>ok&&toast(t("{n} books imported.",{n:rows.length})))}}
+const BCOLS=["title","author","genre","language","year","copies","shelf","isbn","cover_url","description"];
 
 /* ---------- events ---------- */
 const sure=(a,label,f)=>{if(a.dataset.sure)return f();a.dataset.sure=1;a.textContent=t("Sure?");setTimeout(()=>{a.dataset.sure="";a.textContent=t(label)},3000)};
@@ -140,7 +139,7 @@ document.addEventListener("click",async e=>{
   case"ban":act(()=>rpc("staff_set_ban",{p_user:d.s,p_banned:false,p_reason:null}),"Reinstated");break;
   case"delbook":if(out(d.b).length)toast(t("Copies are still on loan."));else sure(a,"Delete",()=>act(()=>must(sb.from("books").delete().eq("id",d.b)),"Book deleted"));break;
   case"delstu":sure(a,"Remove",()=>act(()=>rpc("admin_delete_user",{p_user:d.s}),"User removed"));break;
-  case"csvtemplate":csvOut("books-template.csv",[BCOLS,["The Little Prince","Antoine de Saint-Exupéry","Fiction","en","1943","2","A-1","","","A prince visits Earth."]]);break;
+  case"csvtemplate":csvOut("books-template.csv",[BCOLS,["The Little Prince","Antoine de Saint-Exupéry","Fiction","en","1943","2","A-1","9780156012195","","A prince visits Earth."],["O'tkan kunlar","Abdulla Qodiriy","Novel","uz","1926","5","B-2","","",""]]);break;
   case"exportbooks":csvOut("books.csv",[BCOLS,...S.books.map(b=>[b.title,b.author,b.genre,blang(b),b.year,b.total,b.shelf,b.isbn,b.cover,b.desc])]);break;
   case"exportusers":csvOut("users.csv",[["code","surname","first_name","role","class","email","status"],...S.users.map(s=>[s.code,s.last,s.first,s.role,s.grade,s.email,banned(s)?"suspended":"active"])]);break;
   case"exportloans":csvOut("loans.csv",[["book","borrower","code","class","borrowed","returned"],...S.loans.map(l=>{const b=bookOf(l.bookId),s=stuOf(l.studentId);return [b?b.title:"",s?sname(s):"",s?s.code:"",s?s.grade:"",l.out,l.returnedAt||""]})]);break}

@@ -5,6 +5,7 @@ The website is the static folder `site/` (no build). The data lives in Supabase.
 ## Already done
 
 - The Supabase project **school-library** has the database from `supabase/schema.sql` and 12 sample books (`supabase/seed.sql`).
+- Cover images are stored in the public Supabase Storage bucket `covers` (`supabase/storage.sql`, already applied). Only staff can upload.
 - `site/config.js` points at that project. The key in it is the public *anon* key. It is meant to be public: the database rules decide who can read or change what. Never put the `service_role` key anywhere in this repository.
 
 ## 1. Publish the site (Vercel)
@@ -39,7 +40,7 @@ Set **Site URL** to the production address of the website and add it under **Red
 ## 5. First setup inside the Admin area
 
 - **Settings:** set a **school code** (registration then requires it), the number of books one person may borrow, and whether registration is open. Share the code only inside the school.
-- **Books:** delete the sample books and add your own one by one, or use **Import CSV** (template download inside).
+- **Books:** delete the sample books and add your own one by one, or use **Import CSV / Excel** (template download inside). Columns: title, author, genre, language, year, copies, shelf, isbn, cover_url, description. Only the title is required. Column names in Uzbek, Russian or English are recognised, and a language can be written as uz / Uzbek / O'zbek. Covers can be uploaded when adding or editing a book.
 
 ## Daily use
 

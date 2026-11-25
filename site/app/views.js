@@ -1,11 +1,15 @@
 "use strict";
 /* ---------- catalog ---------- */
+const PAGE=48; /* books drawn at once; "Show more" adds another page. Keeps a 2000-book catalog fast on phones. */
+let qTimer=0;
 function viewCatalog(){
+ S.show=PAGE;
  $("#main").innerHTML=`<div class="head"><div><h1>${t("Catalog")}</h1><p class="sub" id="count"></p></div>${searchBox("q",S.q)}</div><div class="cat"><aside class="filt" id="filt"></aside><div id="grid" class="grid"></div></div>`;
- $("#q").oninput=e=>{S.q=e.target.value;paintCatalog()};
+ $("#q").oninput=e=>{S.q=e.target.value;S.show=PAGE;clearTimeout(qTimer);qTimer=setTimeout(paintCatalog,150)};
  $("#q").closest("form").onsubmit=e=>e.preventDefault();
- $("#filt").onclick=e=>{const g=e.target.closest("[data-g]"),l=e.target.closest("[data-bl]");if(g){S.genre=g.dataset.g;paintCatalog()}if(l){S.blang=l.dataset.bl;paintCatalog()}if(e.target.closest("#only")){S.only=!S.only;paintCatalog()}};
- $("#filt").onchange=e=>{S.sort=e.target.value;paintCatalog()};
+ $("#filt").onclick=e=>{const g=e.target.closest("[data-g]"),l=e.target.closest("[data-bl]");if(g){S.genre=g.dataset.g;S.show=PAGE;paintCatalog()}if(l){S.blang=l.dataset.bl;S.show=PAGE;paintCatalog()}if(e.target.closest("#only")){S.only=!S.only;S.show=PAGE;paintCatalog()}};
+ $("#filt").onchange=e=>{S.sort=e.target.value;S.show=PAGE;paintCatalog()};
+ $("#grid").onclick=e=>{if(e.target.closest("#more")){S.show+=PAGE;paintCatalog()}};
  paintCatalog();
 }
 function paintCatalog(){
@@ -19,7 +23,8 @@ function paintCatalog(){
  const L=S.books.filter(b=>(S.genre==="All"||b.genre===S.genre)&&(S.blang==="all"||blang(b)===S.blang)&&(!S.only||avail(b)>0)&&(!q||(b.title+" "+b.author+" "+(b.isbn||"")).toLowerCase().includes(q)));
  L.sort({title:(a,b)=>a.title.localeCompare(b.title),author:(a,b)=>a.author.localeCompare(b.author),pop:(a,b)=>b.borrowN-a.borrowN,rating:(a,b)=>(b.ratingAvg||0)-(a.ratingAvg||0)||b.ratingN-a.ratingN,new:(a,b)=>(b.added||0)-(a.added||0),stock:(a,b)=>avail(b)-avail(a)}[S.sort]);
  $("#count").textContent=S.loaded?t("{n} of {total} titles",{n:L.length,total:S.books.length}):t("Loading the shelves…");
- $("#grid").innerHTML=L.length?L.map(b=>card(b)).join(""):`<div class="empty" style="grid-column:1/-1"><h3>${t(S.books.length?"Nothing matches":"The shelves are empty")}</h3>${t(S.books.length?"Try a different word or clear the filters.":"An admin can add the first books from the Admin page.")}</div>`;
+ const rest=L.length-S.show;
+ $("#grid").innerHTML=L.length?L.slice(0,S.show).map(b=>card(b)).join("")+(rest>0?`<div style="grid-column:1/-1;text-align:center;padding:6px 0 18px"><button class="btn" id="more">${t("Show more")} · ${rest}</button></div>`:""):`<div class="empty" style="grid-column:1/-1"><h3>${t(S.books.length?"Nothing matches":"The shelves are empty")}</h3>${t(S.books.length?"Try a different word or clear the filters.":"An admin can add the first books from the Admin page.")}</div>`;
 }
 
 /* ---------- book page ---------- */

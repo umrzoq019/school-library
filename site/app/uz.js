@@ -1,6 +1,7 @@
 "use strict";
 
 Object.assign(UZ,{
+"Show more":"Yana ko'rsatish","Language & Literature":"Til va adabiyot","Society & Law":"Jamiyat va huquq","Non-fiction":"Hujjatli adabiyot","Philosophy & Psychology":"Falsafa va psixologiya","Arts":"San'at","Science & Technology":"Fan va texnika","Test Preparation":"Imtihonga tayyorgarlik","Religion":"Din","Audio & Video":"Audio va video","Education":"Ta'lim","Media":"Ommaviy axborot vositalari","Textbook":"Darslik",
 "Removed student":"O'chirilgan o'quvchi","Could not save. Check your connection or your access.":"Saqlab bo'lmadi. Ulanish yoki ruxsatingizni tekshiring.","Due today":"Bugun topshirish kerak",
 "{n} of {total} available":"{total} tadan {n} tasi mavjud","Not available · 0 of {total}":"Mavjud emas · {total} tadan 0 ta","back ~{d}":"qaytadi ~{d}",
 "Search by title or author":"Nomi yoki muallifi bo'yicha qidirish","Search books":"Kitob qidirish","Log in to see this page":"Bu sahifani ko'rish uchun tizimga kiring",

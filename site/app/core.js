@@ -18,7 +18,7 @@ const blang=b=>b.lang||"en";
 const UM=["yan","fev","mar","apr","may","iyun","iyul","avg","sen","okt","noy","dek"];
 const fmt=d=>{if(!d)return "";const x=new Date(d);return S.lang==="uz"?`${x.getDate()}-${UM[x.getMonth()]}, ${x.getFullYear()}`:x.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})};
 const CLASSES=[];for(let g=5;g<=11;g++)for(const n of["01","02"])CLASSES.push(g+"-"+n);
-const ERR={E_CLOSED:"Registration is closed.",E_SCHOOL_CODE:"Wrong school code.",E_BANNED:"This account is suspended.",E_LIMIT:"This user already has the maximum number of books.",E_UNAVAILABLE:"No copy is free right now.",E_QUEUE:"Other readers are ahead in the queue.",E_DUP:"That was already done.",E_HAVE:"You already have this book.",E_AVAILABLE:"A copy is free. Ask at the library desk.",E_HAS_LOANS:"This user still has books out.",E_LAST_ADMIN:"There must be at least one admin.",E_NEEDS_CLASS:"This user has no class. Choose a class first.",E_FORBIDDEN:"You are not allowed to do that.",E_NOT_FOUND:"Not found."};
+const ERR={E_CLOSED:"Registration is closed.",E_SCHOOL_CODE:"Wrong school code.",E_BANNED:"This account is suspended.",E_LIMIT:"This user already has the maximum number of books.",E_UNAVAILABLE:"No copy is free right now.",E_QUEUE:"Other readers are ahead in the queue.",E_DUP:"That was already done.",E_HAVE:"You already have this book.",E_AVAILABLE:"A copy is free. Ask at the library desk.",E_HAS_LOANS:"This user still has books out.",E_LAST_ADMIN:"There must be at least one admin.",E_NEEDS_CLASS:"This user has no class. Choose a class first.",E_FORBIDDEN:"You are not allowed to do that.",E_PROTECTED:"This is a primary admin account. It cannot be changed, suspended or removed.",E_NOT_FOUND:"Not found."};
 const AUTHERR={"Invalid login credentials":"Wrong email or password.","User already registered":"This email is already registered.","Database error saving new user":"Could not create the account. Check the class and the school code.","Email not confirmed":"Confirm your email first, then log in."};
 const errText=e=>{const m=(e&&e.message)||"";const k=(m.match(/E_[A-Z_]+/)||[])[0];if(/password/i.test(m)&&/least|weak|short/i.test(m))return t("Use a longer password (at least 8 characters).");return t(ERR[k]||AUTHERR[m]||"Something went wrong. Please try again.")};
 
@@ -53,7 +53,7 @@ function setLang(l){S.lang=l;try{localStorage.setItem("gul.lang",l)}catch(_){}do
 
 /* ---------- data ---------- */
 const mapBook=b=>({id:b.id,title:b.title,author:b.author,genre:b.genre,lang:b.lang,year:b.year,total:b.total,shelf:b.shelf,isbn:b.isbn,cover:b.cover_url,desc:b.description,added:b.added,outN:+b.out_n,holdN:+b.hold_n,borrowN:+b.borrow_n,ratingAvg:b.rating_avg==null?null:+b.rating_avg,ratingN:+b.rating_n});
-const mapUser=p=>({id:p.id,authId:p.auth_id,first:p.first_name,last:p.last_name,role:p.role,grade:p.grade,code:p.code,email:p.email,banned:p.banned,reason:p.ban_reason,joined:Date.parse(p.created_at)});
+const mapUser=p=>({id:p.id,authId:p.auth_id,first:p.first_name,last:p.last_name,role:p.role,grade:p.grade,code:p.code,email:p.email,banned:p.banned,reason:p.ban_reason,joined:Date.parse(p.created_at),owner:!!p.is_owner});
 const mapLoan=l=>({id:l.id,bookId:l.book_id,studentId:l.user_id,out:l.out_at,returnedAt:l.returned_at});
 async function refresh(){
  if(!sb||busy)return;busy=true;S.loadError="";

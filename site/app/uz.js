@@ -1,6 +1,8 @@
 "use strict";
 
 Object.assign(UZ,{
+"Primary admin":"Asosiy admin","This is a primary admin account. It cannot be changed, suspended or removed.":"Bu asosiy admin hisobi. Uni o'zgartirib, to'xtatib yoki o'chirib bo'lmaydi.",
+"Show more":"Yana ko'rsatish","Novels & Stories":"Roman va hikoyalar","Poetry":"She'riyat","Folktales & Epics":"Ertaklar va dostonlar","Children's Books":"Bolalar kitoblari","Adventure & Detective":"Sarguzasht va detektiv","Fantasy & Sci-Fi":"Fantastika","Biography & Memoir":"Tarjimai hol va xotiralar","Self-Help & Psychology":"Shaxsiy rivojlanish va psixologiya","Politics & Law":"Siyosat va huquq","Science & Nature":"Fan va tabiat","Reference":"Lug'at va ma'lumotnomalar","Language Learning":"Til o'rganish","Arts & Culture":"San'at va madaniyat","Religion & Ethics":"Din va axloq","Textbook":"Darslik","Test Preparation":"Imtihonga tayyorgarlik","Audio & Video":"Audio va video",
 "Removed student":"O'chirilgan o'quvchi","Could not save. Check your connection or your access.":"Saqlab bo'lmadi. Ulanish yoki ruxsatingizni tekshiring.","Due today":"Bugun topshirish kerak",
 "{n} of {total} available":"{total} tadan {n} tasi mavjud","Not available · 0 of {total}":"Mavjud emas · {total} tadan 0 ta","back ~{d}":"qaytadi ~{d}",
 "Search by title or author":"Nomi yoki muallifi bo'yicha qidirish","Search books":"Kitob qidirish","Log in to see this page":"Bu sahifani ko'rish uchun tizimga kiring",

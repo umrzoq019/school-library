@@ -1,5 +1,8 @@
 "use strict";
 /* ---------- catalog ---------- */
+/* search folding: one apostrophe style, lower case, and Cyrillic -> Latin so "garri potter" finds Гарри Поттер */
+const CYR={"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"j","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"x","ц":"ts","ч":"ch","ш":"sh","щ":"sh","ъ":"","ы":"i","ь":"","э":"e","ю":"yu","я":"ya","ў":"o'","қ":"q","ғ":"g'","ҳ":"h"};
+const fold=s=>String(s).toLowerCase().replace(/[\u02bb\u02bc\u2018\u2019`\u00b4\u02b9\u2032]/g,"'").replace(/[а-яёўқғҳ]/g,c=>CYR[c]);
 const PAGE=48; /* books drawn at once; "Show more" adds another page. Keeps a 2000-book catalog fast on phones. */
 let qTimer=0;
 function viewCatalog(){
@@ -19,8 +22,8 @@ function paintCatalog(){
  <h4>${t("Book language")}</h4><button aria-pressed="${S.blang==="all"}" data-bl="all">${t("All")}</button>${LANGS.map(l=>`<button aria-pressed="${S.blang===l}" data-bl="${l}">${lname(l)}<span>${lc[l]||0}</span></button>`).join("")}
  <h4>${t("Stock")}</h4><button id="only" aria-pressed="${S.only}">${t("Available now")}</button><h4>${t("Sort")}</h4><select aria-label="${t("Sort")}">${[["title","A to Z"],["author","Author"],["pop","Most borrowed"],["rating","Top rated"],["new","Newest added"],["stock","Most copies free"]].map(([v,n])=>`<option value="${v}">${t(n)}</option>`).join("")}</select>`;
  $("#filt select").value=S.sort;
- const q=S.q.trim().toLowerCase();
- const L=S.books.filter(b=>(S.genre==="All"||b.genre===S.genre)&&(S.blang==="all"||blang(b)===S.blang)&&(!S.only||avail(b)>0)&&(!q||(b.title+" "+b.author+" "+(b.isbn||"")).toLowerCase().includes(q)));
+ const qs=fold(S.q.trim()).split(/\s+/).filter(Boolean);
+ const L=S.books.filter(b=>(S.genre==="All"||b.genre===S.genre)&&(S.blang==="all"||blang(b)===S.blang)&&(!S.only||avail(b)>0)&&(!qs.length||qs.every(w=>(b._h||(b._h=fold(b.title+" "+b.author+" "+(b.isbn||"")))).includes(w))));
  L.sort({title:(a,b)=>a.title.localeCompare(b.title),author:(a,b)=>a.author.localeCompare(b.author),pop:(a,b)=>b.borrowN-a.borrowN,rating:(a,b)=>(b.ratingAvg||0)-(a.ratingAvg||0)||b.ratingN-a.ratingN,new:(a,b)=>(b.added||0)-(a.added||0),stock:(a,b)=>avail(b)-avail(a)}[S.sort]);
  $("#count").textContent=S.loaded?t("{n} of {total} titles",{n:L.length,total:S.books.length}):t("Loading the shelves…");
  const rest=L.length-S.show;
